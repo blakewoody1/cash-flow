@@ -259,6 +259,8 @@ kbd{display:none;font:600 11px -apple-system,sans-serif;color:var(--muted);margi
 .choice:first-child{border-color:var(--accent);background:var(--accent-soft)}
 .choice:active{transform:scale(.99)}
 .repeatbtn{width:100%;margin:2px 0 4px;color:var(--accent);font-size:15px;padding:11px}
+.bankbtn{padding:7px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap}
+.bankbtn:active{transform:scale(.96)}
 #liveDot{color:var(--accent);font-size:12px}
 .foot{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
 
@@ -378,7 +380,8 @@ kbd{display:none;font:600 11px -apple-system,sans-serif;color:var(--muted);margi
 <div class="wrap">
   <div class="toprow">
     <h1>Cash Flow</h1>
-    <div style="display:flex;gap:2px">
+    <div style="display:flex;gap:6px;align-items:center">
+      <button class="bankbtn" id="btnBank" aria-label="Open your bank app">🏦 Bank</button>
       <button class="icon" id="btnRefresh" aria-label="Refresh">↻</button>
       <button class="icon" id="btnSettings" aria-label="Settings">⚙︎</button>
     </div>
@@ -1481,6 +1484,7 @@ function settingsSheet(){
       <label class="field"><span>Apps Script web app link</span><input id="fApi" value="${esc(CFG.url)}" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
       <label class="field"><span>Key (the KEY in your Apps Script)</span><input id="fKey" type="password" value="${esc(CFG.key)}" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
       <label class="radio" style="margin-top:-4px"><input type="checkbox" id="fShowKey"><span>Show key</span></label>
+      <label class="field"><span>Bank shortcut name (for the 🏦 Bank button)</span><input id="fBank" value="${esc(lsGet("cf_bank") || "")}" placeholder="Exactly as it's named in Shortcuts" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
       <label class="field"><span>Google Sheet link (for “Open sheet”)</span><input id="fId" value="${esc(S.id)}" autocapitalize="off"></label>
       <p class="hint">Connected to: “${esc(S.title || "—")}”. The key is stored only on this device.</p>
       <p class="hint"><button type="button" class="qsync" id="btnClearCache" style="background:var(--bg);color:var(--muted)">Clear saved offline data</button></p>
@@ -1496,6 +1500,13 @@ document.addEventListener("click", e => {
   if (t.id === "fab") return S.month && addSheet();
   if (t.id === "btnRefresh") { if (!S.busy && mcp) { S.tabs = []; loadAll(); } return; }
   if (t.id === "btnSettings" || t.id === "btnSettings2") return settingsSheet();
+  if (t.id === "btnBank") {
+    // runs your Shortcut by name; the Shortcut then opens the bank app
+    const name = lsGet("cf_bank");
+    if (!name) { settingsSheet(); setTimeout(() => { const f = $("#fBank"); if (f) f.focus(); }, 80); toast("Type your bank Shortcut's name, then Save", 3500); return; }
+    window.location.href = "shortcuts://run-shortcut?name=" + encodeURIComponent(name);
+    return;
+  }
   if (t.id === "btnClearCache") { Object.keys(localStorage).filter(x => x.startsWith("cf_c:")).forEach(x => localStorage.removeItem(x)); toast("Saved offline data cleared — it refills next time you're online"); return; }
   if (t.id === "retry") { S.tabs = []; return loadAll(); }
   if (t.dataset.month) return switchMonth(t.dataset.month);
@@ -1566,6 +1577,7 @@ document.addEventListener("submit", e => {
   if (f.id === "setForm") {
     const v = $("#fId").value.trim(); const m = v.match(/\/d\/([a-zA-Z0-9_-]+)/); const id = m ? m[1] : v;
     if (id) { S.id = id; lsSet("cf_sheet", id); }
+    lsSet("cf_bank", $("#fBank").value.trim());
     const url = $("#fApi").value.trim(), key = $("#fKey").value.trim();
     const changed = url !== CFG.url || key !== CFG.key;
     CFG.url = url; CFG.key = key; lsSet("cf_api", url); lsSet("cf_key", key);
