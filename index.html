@@ -1,0 +1,1816 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#121513">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cash Flow">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<title>Cash Flow</title>
+<style>
+:root{
+  --bg:#f3f1ec; --card:#ffffff; --ink:#1d2320; --muted:#6c736f; --line:#e4e1da;
+  --accent:#1f6f50; --accent-ink:#ffffff; --accent-soft:#e2efe8;
+  --inc:#1f7a4d; --bill:#b4432f; --save:#2f5fa8; --spend:#9a6a12;
+  --warn:#b4432f; --shadow:0 1px 2px rgba(0,0,0,.05),0 4px 16px rgba(0,0,0,.05);
+  --r:16px;
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#121513;--card:#1c201e;--ink:#eef1ef;--muted:#9aa39e;--line:#2b302d;
+    --accent:#45b886;--accent-ink:#0d1a13;--accent-soft:#1e3329;
+    --inc:#5fcf95;--bill:#ef8a74;--save:#86aef0;--spend:#e2b45a;--warn:#ef8a74;--shadow:none}
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.35 -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,select{font:inherit;color:inherit}
+.wrap{max-width:560px;margin:0 auto;padding:calc(env(safe-area-inset-top) + 8px) 14px calc(env(safe-area-inset-bottom) + 110px)}
+.toprow{display:flex;align-items:center;justify-content:space-between;padding:6px 2px 10px}
+h1{font-size:22px;margin:0;letter-spacing:-.01em}
+.icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;color:var(--muted)}
+.icon:active{background:var(--line)}
+.months{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 12px;margin:0 -14px;padding-left:16px;padding-right:16px;scroll-snap-type:x proximity}
+.months::-webkit-scrollbar{display:none}
+.chip{flex:none;padding:8px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:15px;white-space:nowrap;scroll-snap-align:center}
+.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--line)}
+.hero{padding:18px 18px 14px}
+.hero .lbl{color:var(--muted);font-size:14px}
+.hero .big{font-size:40px;font-weight:700;letter-spacing:-.02em;margin:2px 0 8px;font-variant-numeric:tabular-nums}
+.pill{display:inline-flex;gap:6px;align-items:center;background:var(--accent-soft);color:var(--accent);padding:6px 10px;border-radius:10px;font-size:14px;font-weight:600}
+.pill.warn{background:color-mix(in srgb,var(--warn) 14%,transparent);color:var(--warn)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px}
+.statbtn{text-align:left;border:1.5px solid var(--accent);background:var(--accent-soft)}
+.statbtn:active{transform:scale(.97)}
+.safeval{color:var(--accent)}
+.stat{background:var(--bg);border-radius:12px;padding:10px}
+.stat{padding:9px 7px!important;min-width:0}
+.stat{display:flex;flex-direction:column;justify-content:space-between;gap:3px}
+.stat small{display:block;color:var(--muted);font-size:11px;line-height:1.15}
+.stat b{display:block;font-size:13px;font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap}
+.totals{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:12px;font-size:13px;color:var(--muted)}
+.totals b{color:var(--ink);font-weight:600;font-variant-numeric:tabular-nums}
+.seg{display:flex;background:var(--line);padding:3px;border-radius:12px;margin:16px 0 10px}
+.seg button{flex:1;padding:9px 0;border-radius:10px;font-size:12.5px;letter-spacing:-.01em;font-weight:600;color:var(--muted)}
+.seg button.on{background:var(--card);color:var(--ink);box-shadow:var(--shadow)}
+.day{display:flex;justify-content:space-between;align-items:baseline;padding:14px 4px 6px;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.day .bal{font-weight:600;text-transform:none;letter-spacing:0;font-variant-numeric:tabular-nums}
+.group{overflow:hidden}
+.past{opacity:.55}
+.item{display:flex;width:100%;align-items:center;gap:12px;padding:12px 14px;text-align:left;border-top:1px solid var(--line);min-height:56px}
+.item:first-child{border-top:0}
+.item:active{background:var(--bg)}
+.titem{padding:0;gap:0}
+.titem:active{background:none}
+.ibody{display:flex;flex:1;min-width:0;align-items:center;gap:12px;padding:12px 14px 12px 4px;text-align:left;min-height:56px}
+.ibody:active{background:var(--bg)}
+.chk{flex:none;width:44px;align-self:stretch;display:grid;place-items:center}
+.chk::before{content:"";width:22px;height:22px;border-radius:50%;border:2px solid var(--line);box-sizing:border-box;transition:all .15s}
+.isClr .chk::before{content:"✓";background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:800;line-height:18px;text-align:center}
+.pending{opacity:.75;border-left:3px solid var(--spend)}
+.pending .sub{color:var(--spend)}
+.cbadge{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:10px;font-weight:800;margin-left:7px;vertical-align:2px}
+.cstat{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:12px 0 4px;padding:10px 12px;border-radius:12px;background:var(--bg);font-size:14px;color:var(--muted)}
+.cstat b{color:var(--ink)}
+.cstat.on{background:var(--accent-soft)}
+.cstat.on b{color:var(--accent)}
+.cstatbtn{flex:none;padding:8px 12px;border-radius:10px;font-weight:700;font-size:14px;background:var(--accent);color:var(--accent-ink)}
+.cstat.on .cstatbtn{background:var(--card);color:var(--muted);border:1px solid var(--line)}
+.amt b.pos{color:var(--inc)}
+.clrline{margin-top:10px;font-size:13px;color:var(--muted)}
+.clrline b{color:var(--ink);font-variant-numeric:tabular-nums}
+.clrsub{display:block;font-size:12px;margin-top:1px}
+.dot{flex:none;width:10px;height:10px;border-radius:50%;background:var(--bill)}
+.k-income .dot{background:var(--inc)} .k-save .dot{background:var(--save)} .k-spend .dot{background:var(--spend)} .k-start .dot{background:var(--muted)}
+.mid{flex:1;min-width:0}
+.desc{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sub{display:block;font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.amt{text-align:right;font-variant-numeric:tabular-nums}
+.amt b{display:block;font-weight:650}
+.amt small{display:block;font-size:12px;color:var(--muted)}
+.k-income .amt b{color:var(--inc)}
+.neg{color:var(--warn)!important}
+.today{display:flex;align-items:center;gap:8px;margin:14px 2px 2px;color:var(--accent);font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.05em}
+.today::after{content:"";flex:1;height:2px;background:var(--accent);border-radius:2px;opacity:.5}
+.fab{position:fixed;right:max(18px,calc(50% - 262px));bottom:calc(env(safe-area-inset-bottom) + 22px);width:62px;height:62px;border-radius:20px;background:var(--accent);color:var(--accent-ink);font-size:34px;font-weight:300;box-shadow:0 8px 24px rgba(0,0,0,.22);display:grid;place-items:center;z-index:5}
+.fab:active{transform:scale(.96)}
+.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
+.quick button{background:var(--bg);border-radius:12px;padding:10px 4px;font-size:13px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px}
+.quick button i{font-style:normal;font-size:18px}
+.scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:10}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;background:var(--card);border-radius:22px 22px 0 0;z-index:11;padding:10px 18px calc(env(safe-area-inset-bottom) + 18px);max-height:92vh;overflow-y:auto;box-shadow:0 -8px 30px rgba(0,0,0,.2);animation:up .18s ease-out}
+@keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.sheet h2{font-size:19px;margin:0 0 12px}
+.field{display:block;margin:12px 0}
+.field span{display:block;font-size:13px;color:var(--muted);margin-bottom:5px;font-weight:600}
+.field input,.field select{width:100%;padding:13px 14px;border-radius:12px;border:1px solid var(--line);background:var(--bg);font-size:17px;outline:none;-webkit-appearance:none;appearance:none;min-height:50px}
+.field input:focus{border-color:var(--accent)}
+.money-in{font-size:32px!important;font-weight:700;font-variant-numeric:tabular-nums;padding:10px 14px!important}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips button{padding:7px 12px;border-radius:999px;background:var(--bg);border:1px solid var(--line);font-size:14px}
+.typeseg{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.typeseg button{padding:10px 0;border-radius:12px;background:var(--bg);font-weight:600;font-size:14px;border:2px solid transparent}
+.typeseg button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+.radio{display:flex;gap:10px;align-items:flex-start;padding:10px 12px;border-radius:12px;background:var(--bg);margin-top:6px;font-size:15px}
+.radio input{margin-top:3px;accent-color:var(--accent);width:18px;height:18px}
+.btns{display:flex;gap:10px;margin-top:18px}
+.btn{flex:1;padding:15px;border-radius:14px;font-weight:700;font-size:17px;background:var(--bg)}
+.btn.primary{background:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--warn)}
+.btn.danger.armed{background:var(--warn);color:#fff}
+.btn:disabled{opacity:.5}
+.hint{font-size:13px;color:var(--muted);margin-top:8px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 96px);background:var(--ink);color:var(--bg);padding:11px 16px;border-radius:12px;font-size:14px;font-weight:600;z-index:20;max-width:90vw;text-align:center;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+.notice{padding:18px;margin-top:12px}
+.notice h3{margin:0 0 6px;font-size:17px}
+.notice p{margin:0;color:var(--muted);font-size:15px}
+.notice .btn{margin-top:14px}
+.skel{height:14px;border-radius:7px;background:var(--line);margin:10px 0;animation:pulse 1.2s infinite ease-in-out}
+@keyframes pulse{50%{opacity:.5}}
+.empty{padding:22px;text-align:center;color:var(--muted)}
+.seg-sm{display:flex;gap:6px;margin-top:6px}
+.seg-sm button{flex:1;padding:10px;border-radius:12px;background:var(--bg);font-weight:600;font-size:14px;border:2px solid transparent}
+.seg-sm button.on{border-color:var(--accent);color:var(--accent);background:var(--accent-soft)}
+a{color:var(--accent)}
+.pgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.pcard{padding:12px 13px}
+.ph b{display:block;font-size:14px}
+.ph small{display:block;font-size:12px;color:var(--muted)}
+.pnow{font-size:22px;font-weight:700;margin:6px 0 2px;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.pmeta{font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bar{height:4px;border-radius:2px;background:var(--line);margin:8px 0 6px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--accent);border-radius:2px}
+.pflow{display:flex;flex-direction:column;font-size:12px;color:var(--muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.pin{color:var(--inc)}
+.safe{grid-column:1/-1;border:1.5px solid var(--accent);background:linear-gradient(var(--accent-soft),var(--card) 70%)}
+.safe .pnow{font-size:30px;color:var(--accent)}
+.safe .pnow.neg{color:var(--warn)}
+.est{margin:10px 0 0;padding-top:8px;border-top:1px dashed var(--line);font-size:12px;color:var(--muted);line-height:1.4}
+.qbox{padding:12px 14px;margin-bottom:12px;border:1.5px solid var(--spend);background:color-mix(in srgb,var(--spend) 8%,var(--card))}
+.qhead{display:flex;justify-content:space-between;align-items:center}
+.qsync{background:var(--accent);color:var(--accent-ink);padding:7px 12px;border-radius:10px;font-weight:700;font-size:14px}
+.qitem{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line);font-size:14px;margin-top:6px}
+.qitem small{display:block;font-size:12px}
+.qx{color:var(--muted);padding:6px 8px;border-radius:8px;font-size:13px;flex:none}
+.qx.armed{background:var(--warn);color:#fff}
+.wide{grid-column:1/-1}
+.unit{font-size:15px;font-weight:600;color:var(--muted)}
+.lrow{display:flex;justify-content:space-between;gap:10px;font-size:14px;padding:6px 0;border-top:1px solid var(--line);font-variant-numeric:tabular-nums}
+.lrow small{color:var(--muted)}
+.bar.thin{height:3px;margin:0 0 4px}
+.wk{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:10px;text-align:center}
+.wkb{position:relative;height:90px;background:var(--bg);border-radius:8px;overflow:hidden}
+.wkb i{position:absolute;left:0;right:0;bottom:0;background:var(--spend);border-radius:6px 6px 0 0}
+.wkb s{position:absolute;left:0;right:0;border-top:2px dashed var(--accent)}
+.wkc b{display:block;font-size:13px;margin-top:4px;font-variant-numeric:tabular-nums}
+.wkc small{font-size:11px;color:var(--muted)}
+.tlwrap{position:relative}
+.tl{height:min(74vh,700px);overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:auto;position:relative;border-radius:var(--r);padding:0 2px;
+  mask-image:linear-gradient(transparent 0,#000 14px,#000 calc(100% - 18px),transparent);-webkit-mask-image:linear-gradient(transparent 0,#000 14px,#000 calc(100% - 18px),transparent)}
+.tl .day{position:sticky;top:0;z-index:1;background:var(--bg)}
+.day.isToday{color:var(--accent)}
+.jump{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:2}
+.totop{position:fixed;left:max(18px,calc(50% - 262px));bottom:calc(env(safe-area-inset-bottom) + 30px);background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:999px;font-size:15px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25);z-index:5}
+.totop:active{transform:scale(.96)}
+h1{cursor:pointer}
+kbd{display:none;font:600 11px -apple-system,sans-serif;color:var(--muted);margin-left:5px}
+@media (min-width: 700px){ kbd{display:inline} }
+.kbdhint{display:none}
+@media (min-width: 700px){ .kbdhint{display:block} }
+.kbbtn{margin-top:10px;width:34px;height:34px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--muted);font-size:17px}
+.kbbtn:active{transform:scale(.95)}
+.kgroup{margin:14px 0}
+.kh{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:4px}
+.krow{display:flex;align-items:center;gap:12px;padding:7px 0;border-top:1px solid var(--line);font-size:15px}
+.keys{flex:none;min-width:118px;display:flex;gap:4px}
+.kk{display:inline-block;font:600 13px -apple-system,sans-serif;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:3px 7px;margin:0}
+.tips{margin:4px 0 0;padding-left:18px;font-size:14px;color:var(--muted);line-height:1.45}
+.tips li{margin:4px 0}
+/* centered top card */
+.hero{text-align:center}
+.hero .big{margin:2px 0 10px}
+.pills{display:flex;flex-wrap:wrap;justify-content:center;gap:6px}
+.hero .clrline{text-align:center}
+.hero .stat{align-items:center;text-align:center}
+.hero .statbtn{text-align:center}
+.hero .totals{display:block;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.tcap{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
+.tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
+.tgrid span{display:flex;flex-direction:column;align-items:center;gap:1px}
+.tgrid small{font-size:11px;color:var(--muted)}
+.tgrid b{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap}
+/* ---------- calculator (iPad / wide only) ---------- */
+#calc{display:none;margin-top:14px}
+.calc{padding:14px}
+.cdisp{background:var(--bg);border-radius:12px;padding:10px 14px;text-align:right;margin-bottom:10px}
+.cclip{display:flex;gap:6px;justify-content:flex-start;margin:-2px 0 4px}
+.cclip button{font-size:12px;font-weight:700;color:var(--accent);background:var(--card);border:1px solid var(--line);border-radius:8px;padding:4px 9px}
+.cpaste{display:flex;gap:6px;margin:4px 0}
+.cpaste[hidden]{display:none}
+.cpaste input{flex:1;min-width:0;padding:8px 10px;border-radius:9px;border:1.5px solid var(--accent);background:var(--card);font-size:15px;outline:none}
+.cpaste button{color:var(--muted);padding:0 8px}
+.cexpr{font-size:14px;color:var(--muted);min-height:18px;word-break:break-all;font-variant-numeric:tabular-nums}
+.cval{font-size:30px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ckeys{display:grid;grid-template-columns:repeat(4,1fr);gap:7px}
+.ckeys button{padding:9px 0;border-radius:11px;background:var(--bg);font-size:19px;font-weight:600}
+.ckeys button:active{transform:scale(.96);filter:brightness(.95)}
+.ckeys .op{background:var(--accent-soft);color:var(--accent)}
+.ckeys .eq{background:var(--accent);color:var(--accent-ink)}
+.ckeys .fn{color:var(--muted);font-size:17px}
+.ckeys .zero{grid-column:span 2}
+.cact{display:flex;gap:7px;margin-top:9px}
+.cact button{flex:1;padding:9px 6px;border-radius:10px;background:var(--bg);font-size:13px;font-weight:700;color:var(--accent)}
+.tape{margin-top:12px;border-top:1px dashed var(--line);padding-top:8px}
+.tapehead{display:flex;justify-content:space-between;align-items:center;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.tapehead button{font-size:12px;color:var(--muted);text-transform:none;letter-spacing:0;padding:4px 6px}
+.tapelist{max-height:260px;overflow-y:auto;margin-top:4px;font-family:ui-monospace,"SF Mono",Menlo,monospace}
+.tline{display:flex;justify-content:space-between;gap:10px;width:100%;padding:6px 4px;border-bottom:1px solid var(--line);font-size:14px;text-align:left}
+.tline span{color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tline b{font-variant-numeric:tabular-nums;white-space:nowrap}
+.tline:active{background:var(--bg)}
+.tempty{font-size:13px;color:var(--muted);padding:8px 0;font-family:-apple-system,sans-serif}
+/* month picker: floating bar at the bottom (iPhone); iPad rules below move it beside the + button */
+.months{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:6;
+  margin:0;padding:5px;max-width:calc(100vw - 28px);background:var(--card);border:1px solid var(--line);border-radius:999px;
+  box-shadow:0 6px 24px rgba(0,0,0,.16);scroll-snap-type:x proximity}
+.months .chip{border:0;background:none;padding:8px 15px}
+.months .chip.on{background:var(--ink);color:var(--bg)}
+.fab{bottom:calc(env(safe-area-inset-bottom) + 78px)}
+.totop{bottom:calc(env(safe-area-inset-bottom) + 86px)}
+.toast{bottom:calc(env(safe-area-inset-bottom) + 156px)}
+.wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 170px)}
+.shead{position:sticky;top:-10px;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);
+  margin:-4px -18px 8px;padding:8px 18px 10px;border-bottom:1px solid var(--line)}
+.shead b{font-size:16px;text-align:center;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hbtn{padding:8px 6px;font-size:17px;color:var(--muted);font-weight:500;min-width:64px;text-align:left}
+.hbtn.primary{color:var(--accent);font-weight:800;text-align:right}
+.radio small.hint{margin:0;font-size:12.5px}
+.choices{display:flex;flex-direction:column;gap:8px;margin-top:12px}
+.choice{text-align:left;padding:13px 14px;border-radius:14px;background:var(--bg);border:1.5px solid var(--line)}
+.choice b{display:block;font-size:16px}
+.choice small{display:block;font-size:13px;color:var(--muted);margin-top:2px}
+.choice:first-child{border-color:var(--accent);background:var(--accent-soft)}
+.choice:active{transform:scale(.99)}
+.repeatbtn{width:100%;margin:2px 0 4px;color:var(--accent);font-size:15px;padding:11px}
+#liveDot{color:var(--accent);font-size:12px}
+.foot{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
+
+/* ---------- iPad / wide screens ---------- */
+@media (min-width: 900px){
+  html,body{font-size:17px}
+  .wrap{max-width:1320px;padding:calc(env(safe-area-inset-top) + 14px) 22px calc(env(safe-area-inset-bottom) + 40px);
+    display:grid;grid-template-columns:minmax(330px,420px) minmax(0,1fr);grid-template-rows:auto auto auto 1fr auto;column-gap:22px;align-items:start}
+  .toprow,#queue,.foot{grid-column:1 / -1}
+  .toprow{grid-row:1;padding-bottom:6px}
+  #queue{grid-row:2}
+  /* month picker becomes a floating bar along the bottom */
+  .months{position:fixed;left:auto;transform:none;right:112px;bottom:calc(env(safe-area-inset-bottom) + 50px);z-index:6;
+    margin:0;padding:6px;max-width:calc(100vw - 600px);background:var(--card);border:1px solid var(--line);border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.14)}
+  .months .chip{border:0;background:none;padding:8px 16px}
+  .months .chip.on{background:var(--ink);color:var(--bg)}
+  /* "Live from…" line and the ⌘ button sit right under the month bar */
+  .foot{position:fixed;right:112px;bottom:calc(env(safe-area-inset-bottom) + 12px);z-index:6;margin:0;padding:0;
+    display:flex;align-items:center;gap:8px;font-size:12px;white-space:nowrap}
+  .foot > div{display:inline-flex}
+  .foot .kbbtn{margin-top:0;width:28px;height:28px;font-size:15px;border-radius:8px}
+  #view{padding-bottom:110px}
+  #leftcol{grid-column:1;grid-row:3 / span 2;position:sticky;top:16px;align-self:start;max-height:calc(100vh - 24px);overflow-y:auto;scrollbar-width:none}
+  #leftcol::-webkit-scrollbar{display:none}
+  #calc{display:block}
+  #periods{display:none}
+  #tabs{grid-column:2;grid-row:3;margin-top:0}
+  #view{grid-column:2;grid-row:4}
+  h1{font-size:26px}
+  .hero .big{font-size:46px}
+  .stat b{font-size:15px}
+  .stat small{font-size:12px}
+  .seg button{font-size:15px;padding:11px 0}
+  .tl{height:calc(100vh - 250px);min-height:420px}
+  .item,.ibody{min-height:62px}
+  .desc{font-size:17px}
+  .sub{font-size:14px}
+  .amt b{font-size:17px}
+  .day{font-size:14px}
+  .pgrid{grid-template-columns:repeat(auto-fill,minmax(240px,1fr))}
+  .pmeta,.pflow,.ph small,.clrline,.totals,.hint,.est,.lrow{font-size:14px}
+  .ph b{font-size:16px}
+  .pnow{font-size:26px}
+  .safe .pnow{font-size:34px}
+  .fab{right:28px;bottom:calc(env(safe-area-inset-bottom) + 22px)}
+  .toast{bottom:calc(env(safe-area-inset-bottom) + 110px)}
+  .totop{left:28px;bottom:calc(env(safe-area-inset-bottom) + 30px)}
+  .sheet{bottom:auto;top:50%;transform:translateY(-50%);border-radius:22px;max-height:86vh;animation:none}
+  .grab{display:none}
+}
+/* left column always fits the screen: card + keypad keep their size, the tape takes whatever height is left */
+@media (min-width: 900px){
+  #leftcol{display:flex;flex-direction:column;height:calc(100vh - 84px);height:calc(100dvh - 84px);max-height:none;overflow:hidden}
+  #hero{flex:none}
+  #calc{flex:1 1 auto;min-height:0;display:flex;flex-direction:column;margin-top:10px}
+  #calc .calc{flex:1;min-height:0;display:flex;flex-direction:column;padding:10px 12px}
+  #calc .cdisp{flex:none;padding:8px 12px;margin-bottom:8px}
+  #calc .ckeys,#calc .cact{flex:none}
+  #calc .ckeys{gap:6px}
+  #calc .ckeys button{padding:7px 0;font-size:18px}
+  #calc .cact{margin-top:7px}
+  #calc .cact button{padding:7px 6px}
+  #calc .cval{font-size:26px}
+  #calc .tape{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:8px;padding-top:6px}
+  #calc .tapelist{flex:1;min-height:44px;max-height:none}
+  /* tighter balance card */
+  .hero{padding:14px 16px 12px}
+  .hero .big{font-size:40px;margin:0 0 8px}
+  .hero .pill{padding:5px 9px;font-size:13px}
+  .hero .stats{margin-top:10px}
+  .hero .totals{margin-top:10px;padding-top:8px}
+}
+/* shorter screens (split view, Safari toolbars): squeeze a bit more */
+@media (min-width: 900px) and (max-height: 900px){
+  .hero .big{font-size:34px}
+  .hero .lbl{font-size:13px}
+  .hero .clrline{margin-top:6px}
+  .stat{padding:7px 6px!important}
+  #calc .ckeys button{padding:5px 0;font-size:17px}
+  #calc .cval{font-size:22px}
+  #calc .cclip{margin:0 0 2px}
+  .hero{padding:10px 14px}
+  .pills{flex-wrap:nowrap}
+  .hero .pill{font-size:12px;padding:4px 8px;white-space:nowrap}
+  .hero .clrline{font-size:12px}
+  .hero .clrsub{display:inline;margin-left:6px;font-size:12px}
+  .hero .stats{margin-top:8px;gap:5px}
+  .stat small{font-size:10.5px}
+  .stat b{font-size:13px}
+  .tcap{display:none}
+  .hero .totals{margin-top:8px;padding-top:6px}
+  #calc{margin-top:8px}
+  #calc .calc{padding:8px 10px}
+  #calc .cdisp{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:10px;padding:6px 10px;margin-bottom:6px}
+  #calc .cclip{grid-column:1;grid-row:1 / span 2;flex-direction:column;gap:4px;margin:0}
+  #calc .cclip button{padding:3px 7px;font-size:11px}
+  #calc .cexpr{grid-column:2;grid-row:1;font-size:12px;min-height:14px}
+  #calc .cval{grid-column:2;grid-row:2;font-size:22px}
+  #calc .cpaste{grid-column:1 / -1;grid-row:3}
+  #calc .ckeys{gap:5px}
+  #calc .ckeys button{padding:4px 0;font-size:16px;border-radius:9px}
+  #calc .cact{margin-top:5px;gap:5px}
+  #calc .cact button{padding:5px 4px;font-size:12px}
+  #calc .tape{margin-top:6px;padding-top:4px}
+  #calc .tline{padding:4px;font-size:13px}
+}
+@media (min-width: 900px) and (max-height: 720px){
+  .hero .totals{display:none}
+}
+@media (min-width: 900px) and (max-width: 1180px){ .livefrom{display:none} }
+@media (min-width: 1200px){
+  .wrap{grid-template-columns:440px minmax(0,1fr)}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="toprow">
+    <h1>Cash Flow</h1>
+    <div style="display:flex;gap:2px">
+      <button class="icon" id="btnRefresh" aria-label="Refresh">↻</button>
+      <button class="icon" id="btnSettings" aria-label="Settings">⚙︎</button>
+    </div>
+  </div>
+  <div class="months" id="months"></div>
+  <div id="queue"></div>
+  <div id="leftcol"><div id="hero"></div><div id="calc"></div></div>
+  <div id="periods"></div>
+  <div class="seg" id="tabs">
+    <button data-tab="timeline" class="on">Timeline</button>
+    <button data-tab="uncleared">Uncleared</button>
+    <button data-tab="spending">Spending</button>
+    <button data-tab="savings">Savings</button>
+    <button data-tab="summaries">Summaries</button>
+  </div>
+  <div id="view"></div>
+  <div class="foot" id="foot"></div>
+</div>
+<button class="fab" id="fab" aria-label="Add">+</button>
+<button class="totop" id="btnTop" aria-label="Back to top" hidden>↑ Top</button>
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" hidden></div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const SERVER = "Google Sheets";
+const DEFAULT_ID = "14yvG4FmByEp2Te4gIPQ5FPQ2n6hwSN-quB7b95WRQ1U";
+const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
+function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+
+let mcp = null;
+const S = { id: lsGet("cf_sheet") || DEFAULT_ID, tabs: [], month: null, spend: {items:[],lastRow:1}, save: {items:[],lastRow:1},
+  view: "timeline", loading: true, err: null, busy: false };
+
+/* ---------- dates & money ---------- */
+const EPOCH = Date.UTC(1899,11,30);
+const parts = s => { const d = new Date(EPOCH + Math.round(s)*864e5); return {y:d.getUTCFullYear(), m:d.getUTCMonth(), d:d.getUTCDate(), w:d.getUTCDay()}; };
+const toSerial = (y,m,d) => Math.round((Date.UTC(y,m,d) - EPOCH)/864e5);
+const todaySerial = () => { const n = new Date(); return toSerial(n.getFullYear(), n.getMonth(), n.getDate()); };
+const isoToSerial = iso => { const [y,m,d] = iso.split("-").map(Number); return toSerial(y,m-1,d); };
+const serialToIso = s => { const p = parts(s); return `${p.y}-${String(p.m+1).padStart(2,"0")}-${String(p.d).padStart(2,"0")}`; };
+const serialToUS = s => { const p = parts(s); return `${p.m+1}/${p.d}/${p.y}`; };
+function usToSerial(t){
+  const m = String(t||"").trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
+  if (m) { let y = +m[3]; if (y < 100) y += 2000; return toSerial(y, +m[1]-1, +m[2]); }
+  const d = new Date(t); return isNaN(d) ? null : toSerial(d.getFullYear(), d.getMonth(), d.getDate());
+}
+const dayLabel = s => { const p = parts(s); return `${DOW[p.w]}, ${MON[p.m]} ${p.d}`; };
+const short = s => { const p = parts(s); return `${MON[p.m]} ${p.d}`; };
+const money = n => (n < 0 ? "-" : "") + "$" + Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+function parseMoney(t){
+  if (t == null || t === "") return 0; if (typeof t === "number") return t;
+  let s = String(t).replace(/[$,\s]/g,""); if (s === "-" || s === "") return 0;
+  const neg = /^\(.*\)$/.test(s) || s.startsWith("-"); const n = parseFloat(s.replace(/[()\-]/g,""));
+  return isNaN(n) ? 0 : (neg ? -n : n);
+}
+const round2 = n => Math.round(n*100)/100;
+const qt = t => `'${t.replace(/'/g,"''")}'`;
+const norm = s => String(s||"").trim().toLowerCase().replace(/\s+/g," ");
+
+/* ---------- connector ---------- */
+const CFG = { url: lsGet("cf_api") || "", key: lsGet("cf_key") || "" };
+const READS = new Set(["get_spreadsheet", "get_values"]);
+async function apiCall(tool, input){
+  if (!CFG.url || !CFG.key) throw {code:"not_setup", message:"Add your Apps Script link and key in Settings."};
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), READS.has(tool) ? 25000 : 60000);
+  let res;
+  try {
+    res = await fetch(CFG.url, {method:"POST", headers:{"Content-Type":"text/plain;charset=utf-8"}, body: JSON.stringify({key: CFG.key, tool, input}), signal: ctl.signal, redirect:"follow"});
+  } catch(e) { throw {code:"server_unavailable", message: navigator.onLine ? "Couldn't reach your Apps Script." : "No signal."}; }
+  finally { clearTimeout(tm); }
+  let j = null; try { j = await res.json(); } catch(e) {}
+  if (!j) throw {code:"bad_response", message:"The Apps Script link didn't answer as expected."};
+  if (j.error) throw {code: j.code || "tool_error", message: j.error};
+  return j.result;
+}
+// Saved copies of everything the app reads, so it still shows your numbers with no signal
+function cacheGet(k){ try { return JSON.parse(localStorage.getItem(k) || "null"); } catch(e){ return null; } }
+function cacheSet(k, p){
+  const v = JSON.stringify({t: Date.now(), p});
+  try { localStorage.setItem(k, v); }
+  catch(e) {   // storage full: drop the oldest saved copies and try once more
+    try {
+      const keys = Object.keys(localStorage).filter(x => x.startsWith("cf_c:")).map(x => [x, (cacheGet(x) || {}).t || 0]).sort((a, b) => a[1] - b[1]);
+      keys.slice(0, Math.ceil(keys.length / 2)).forEach(([x]) => localStorage.removeItem(x));
+      localStorage.setItem(k, v);
+    } catch(e2) {}
+  }
+}
+async function call(tool, input){
+  const isRead = READS.has(tool), k = isRead ? "cf_c:" + tool + ":" + JSON.stringify(input) : null;
+  if (isRead && !navigator.onLine) {
+    const c = cacheGet(k); if (c) { S.fromCache = Math.min(S.fromCache || Infinity, c.t); return c.p; }
+    throw {code:"offline", message:"No signal, and this hasn't been opened online yet."};
+  }
+  try { const p = await apiCall(tool, input); if (isRead) cacheSet(k, p); return p; }
+  catch(e) {
+    if (isRead && (e.code === "server_unavailable" || e.code === "bad_response")) { const c = cacheGet(k); if (c) { S.fromCache = Math.min(S.fromCache || Infinity, c.t); return c.p; } }
+    throw e;
+  }
+}
+const upd = (range, values) => call("update_values", {spreadsheetId:S.id, range, values});
+
+function errInfo(e){
+  const code = e && e.code;
+  const map = {
+    needs_reauth: ["Wrong key","The key in Settings doesn't match the KEY in your Apps Script. Fix it in Settings (⚙︎)."],
+    not_setup: ["Connect your sheet","Tap ⚙︎ Settings and add your Apps Script web app link and key."],
+    bad_response: ["Apps Script link isn't right","Check Settings: it should be the Web app URL ending in /exec, deployed with access set to Anyone."],
+    offline: ["No signal","This part hasn't been loaded on this device yet. It will load once you're back online."],
+    server_unavailable: ["Couldn't reach your sheet","It may be a brief hiccup or no signal. Tap Try again."],
+    layout: ["Sheet layout changed", e && e.message],
+    tool_error: ["Google Sheets reported a problem", (e && e.message) || "Check your Apps Script in Settings."],
+  };
+  return map[code] || ["Something went wrong", (e && e.message) || String(e)];
+}
+
+/* ---------- loading ---------- */
+const MONTH_RE = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})$/;
+const tabKey = t => { const m = t.match(MONTH_RE); return m ? (+m[2])*12 + MON.indexOf(m[1]) : null; };
+
+async function loadTabs(){
+  const p = await call("get_spreadsheet", {spreadsheetId:S.id, fields:["properties.title","sheets.properties.title","sheets.properties.sheetId"]});
+  S.title = p.properties && p.properties.title;
+  S.tabs = (p.sheets||[]).map(s => s.properties).filter(t => MONTH_RE.test(t.title)).sort((a,b) => tabKey(a.title) - tabKey(b.title));
+  if (!S.tabs.length) throw {code:"layout", message:"No month tabs (like “Nov 2026”) were found in this sheet."};
+}
+function tabForSerial(s){
+  const p = parts(s), key = p.y*12 + p.m;
+  const exact = S.tabs.find(t => tabKey(t.title) === key);
+  if (exact) return exact.title;
+  if (key < tabKey(S.tabs[0].title)) return S.tabs[0].title;
+  return null;
+}
+
+function parseGrid(rd){
+  const cell = (r,c) => { const row = rd[r-1]; return (row && row.values && row.values[c]) || {}; };
+  const num = (r,c) => { const e = cell(r,c).effectiveValue; return e && typeof e.numberValue === "number" ? e.numberValue : 0; };
+  const str = (r,c) => { const u = cell(r,c).userEnteredValue; if (!u) return ""; if (u.stringValue != null) return u.stringValue; if (u.numberValue != null) return String(u.numberValue); return ""; };
+  const fx = (r,c) => { const u = cell(r,c).userEnteredValue; return (u && u.formulaValue) || null; };
+  const has = (r,c) => !!cell(r,c).userEnteredValue;
+  return {cell, num, str, fx, has};
+}
+
+async function loadMonth(title){
+  const t = S.tabs.find(x => x.title === title);
+  const p = await call("get_spreadsheet", {spreadsheetId:S.id, includeGridData:true, ranges:[`${qt(title)}!A1:I160`],
+    fields:["sheets.data.rowData.values.userEnteredValue","sheets.data.rowData.values.effectiveValue"]});
+  const rd = (p.sheets && p.sheets[0] && p.sheets[0].data && p.sheets[0].data[0] && p.sheets[0].data[0].rowData) || [];
+  const {cell, num, str, fx, has} = parseGrid(rd);
+  let hdr = 0;
+  for (let r = 1; r <= rd.length; r++) if (str(r,0) === "Date" && /^Running/i.test(str(r,5))) { hdr = r; break; }
+  if (!hdr) throw {code:"layout", message:`Couldn't find the Date / Running Balance header on “${title}”.`};
+  const rows = []; let last = 0;
+  for (let r = hdr+1; r <= rd.length; r++){
+    const fF = fx(r,5);
+    if (!fF) break;
+    last = r;
+    const desc = str(r,2).trim();
+    const uA = cell(r,0).userEnteredValue;
+    const serial = uA && typeof uA.numberValue === "number" ? uA.numberValue : null;
+    const dF = fx(r,3), eF = fx(r,4);
+    let kind;
+    if (r === hdr+1 || /^starting balance/i.test(desc)) kind = "start";
+    else if (eF && /Spending Log/.test(eF)) kind = "spend";
+    else if (eF && /Savings Log/.test(eF)) kind = "save";
+    else if (!desc && !has(r,3) && !has(r,4)) kind = "blank";
+    else if (num(r,3) !== 0 || (!has(r,4) && /pay|income|deposit|refund|bonus/i.test(desc))) kind = "income";
+    else kind = "bill";
+    rows.push({r, serial, desc, inc:num(r,3), bill:num(r,4), bal:num(r,5), note:str(r,6), kind, dF, eF, cleared: !!str(r,8) && str(r,8) !== "FALSE"});
+  }
+  const sum = {income:num(4,4), bills:num(5,4), spend:num(6,4), lowest:num(7,4), ending:num(8,4), saved:num(9,4), saveEnd:num(10,4), start:num(4,1), saveStart:num(5,1)};
+  return {title, sheetId:t.sheetId, hdr, first:hdr+1, last, rows, sum, e8:fx(8,4), hdrI: str(hdr,8)};
+}
+
+async function loadLog(tab){
+  const p = await call("get_values", {spreadsheetId:S.id, range:`${qt(tab)}!A2:E4000`});
+  const v = (p && p.values) || []; const items = []; let lastRow = 1;
+  v.forEach((row, i) => {
+    const r = i + 2;
+    if (row.some(x => x !== "" && x != null)) lastRow = r;
+    const serial = usToSerial(row[0]); if (serial == null) return;
+    const text = String(row[1]||"").trim(), amt = parseMoney(row[2]);
+    if (text === "(deleted)" && amt === 0) return;
+    items.push({r, serial, text, amt, cleared: !!row[4] && String(row[4]).toUpperCase() !== "FALSE"});
+  });
+  return {items, lastRow};
+}
+
+async function loadAll(pickTitle){
+  S.loading = true; S.err = null; S.fromCache = null; render();
+  try{
+    if (!S.tabs.length) await loadTabs();
+    const T = todaySerial();
+    const title = pickTitle || (S.month && S.month.title) || tabForSerial(T) || S.tabs[S.tabs.length-1].title;
+    const pTitles = periodTabs(T).filter(t => t !== title);
+    const [m, sp, sv, ...others] = await Promise.all([loadMonth(title), loadLog("Spending Log"), loadLog("Savings Log"), ...pTitles.map(t => loadMonth(t).catch(() => null))]);
+    S.month = m; S.spend = sp; S.save = sv; S.loadedAt = S.fromCache ? new Date(S.fromCache) : new Date();
+    S.periodMonths = [m, ...others.filter(Boolean)].sort((a,b) => tabKey(a.title) - tabKey(b.title));
+    S.offline = !!S.fromCache; S.err = null;
+  } catch(e){ if (S.month && (!navigator.onLine || e.code === "server_unavailable" || e.code === "offline")) S.offline = true; else S.err = e; }
+  S.loading = false; render();
+}
+
+/* ---------- cleared marks ---------- */
+function clearedLine(){
+  const m = S.month; if (!m) return "";
+  const T = todaySerial();
+  let bal = m.sum.start, n = 0, open = 0;
+  for (const r of m.rows) {
+    if (r.kind === "blank" || r.kind === "start" || r.kind === "spend") continue;
+    const amt = (r.inc || 0) - (r.bill || 0); if (!amt) continue;
+    if (r.cleared) { bal += amt; n++; } else if (r.serial != null && r.serial <= T) open++;
+  }
+  for (const it of S.spend.items) {
+    if (!it.amt || tabForSerial(it.serial) !== m.title) continue;
+    if (it.cleared) { bal -= it.amt; n++; } else if (it.serial <= T) open++;
+  }
+  return `<div class="clrline">Cleared balance <b>${money(bal)}</b><span class="clrsub">${n} cleared${open ? ` · <span class="neg">${open} waiting to clear</span>` : ""}</span></div>`;
+}
+async function toggleCleared(target, r, title){
+  let op;
+  if (target === "log") {
+    const it = S.spend.items.find(i => i.r === r); if (!it) return;
+    it.cleared = !it.cleared;
+    op = {type:"clear", target:"log", tab:"Spending Log", r, val:it.cleared, text:it.text};
+  } else {
+    title = title || S.month.title;
+    // the same row can be held by the month you're viewing and by the summaries' month list; flip both copies
+    const copies = [S.month, ...(S.periodMonths || [])].filter(m => m && m.title === title).map(m => m.rows.find(x => x.r === r)).filter(Boolean);
+    if (!copies.length) return;
+    const val = !copies[0].cleared; const seen = new Set();
+    copies.forEach(c => { if (!seen.has(c)) { c.cleared = val; seen.add(c); } });
+    const row = copies[0];
+    op = {type:"clear", target:"row", title, r, serial:row.serial, desc:row.desc, val};
+  }
+  const tl = $("#tl"), top = tl ? tl.scrollTop : 0;
+  renderHero(); renderView(); if ($("#tl")) $("#tl").scrollTop = top;
+  if (!navigator.onLine || S.queue.length || flushing) { enqueue(op, false); return; }
+  try { await execOp(op); }
+  catch(e){
+    if (!navigator.onLine || NETWORKISH.has(e && e.code)) { enqueue(op, true); toast("Saved on this phone — will sync"); }
+    else { const [h, b] = errInfo(e); toast(`${h}. ${b || ""}`, 5000); loadAll(); }
+  }
+}
+
+/* ---------- uncleared list ---------- */
+function unclearedHTML(){
+  const T = todaySerial(), list = [], seenRow = new Set();
+  const months = [...(S.periodMonths || [])];
+  if (S.month && !months.some(m => m.title === S.month.title)) months.push(S.month);
+  for (const m of months) for (const r of m.rows) {
+    const key = m.title + "#" + r.r;
+    if (seenRow.has(key)) continue; seenRow.add(key);
+    if (r.cleared || r.serial == null || r.serial > T) continue;
+    if (r.kind === "blank" || r.kind === "start" || r.kind === "spend") continue;
+    const amt = (r.inc || 0) - (r.bill || 0); if (!amt) continue;
+    let desc = r.desc, sub = r.note;
+    if (r.kind === "save") { const mm = r.desc.match(/\(([^)]*)\)/); desc = r.bill < 0 ? "Pulled from savings" : "Moved to savings"; sub = (mm ? mm[1] + " · " : "") + "Savings Log"; }
+    list.push({s:r.serial, amt, desc, sub: sub || (r.kind === "income" ? "Income" : "Bill"), kind:r.kind, open:`data-unc="row" data-r="${r.r}" data-title="${esc(m.title)}"`});
+  }
+  for (const it of S.spend.items) {
+    if (it.cleared || !it.amt || it.serial > T) continue;
+    list.push({s:it.serial, amt:-it.amt, desc:it.text || "Expense", sub:"Spending Log", kind:"spend", open:`data-unc="log" data-r="${it.r}"`});
+  }
+  list.sort((a, b) => b.s - a.s);
+  const net = list.reduce((a, x) => a + x.amt, 0);
+  const out = list.reduce((a, x) => a + (x.amt < 0 ? -x.amt : 0), 0), inn = list.reduce((a, x) => a + (x.amt > 0 ? x.amt : 0), 0);
+  let html = `<div class="card hero" style="padding:14px 16px;margin-bottom:4px">
+    <div class="lbl">${list.length ? `${list.length} past item${list.length > 1 ? "s" : ""} not cleared yet` : "Everything up to today is cleared"}</div>
+    <div class="big" style="font-size:30px;margin:2px 0 4px">${money(net)}</div>
+    ${list.length ? `<div class="pmeta">${money(out)} going out${inn ? ` · ${money(inn)} coming in` : ""} still to hit your bank</div>` : ""}
+    ${clearedLine()}
+  </div>`;
+  if (!list.length) return html + `<div class="empty">Nice — nothing waiting to clear.</div>`;
+  const groups = []; for (const x of list) { const g = groups[groups.length - 1]; if (g && g.s === x.s) g.items.push(x); else groups.push({s:x.s, items:[x]}); }
+  html += groups.map(g => `<div class="day"><span>${esc(dayLabel(g.s))}</span><span class="bal">${T - g.s === 0 ? "today" : (T - g.s) + " day" + (T - g.s === 1 ? "" : "s") + " ago"}</span></div>
+    <div class="card group">${g.items.map(x => `<button class="item k-${x.kind}" ${x.open}><span class="dot"></span><span class="mid"><span class="desc">${esc(x.desc)}</span><span class="sub">${esc(x.sub)}</span></span><span class="amt"><b class="${x.amt > 0 ? "pos" : ""}">${x.amt > 0 ? "+" : "-"}${money(Math.abs(x.amt))}</b></span></button>`).join("")}</div>`).join("");
+  return html + `<p class="hint" style="text-align:center">Tap an item, then “Mark as cleared” once it shows up in your bank. It moves off this list and into your cleared balance.</p>`;
+}
+
+/* ---------- offline queue ---------- */
+// Each change is an "op". Online: run it now. Offline (or the send fails): keep it on this phone and send it later.
+function loadQueue(){ try { return JSON.parse(lsGet("cf_queue") || "[]"); } catch(e){ return []; } }
+function saveQueue(){ lsSet("cf_queue", JSON.stringify(S.queue)); renderQueue(); if (S.month && S.view === "timeline") renderView(); }
+S.queue = loadQueue();
+const NETWORKISH = new Set(["server_unavailable","upstream_error","rate_limited","offline","bad_response"]);
+
+async function execOp(op){
+  if (op.type === "log") {
+    if (op.maybeSent) {   // the earlier try might have landed: skip if an identical row is already there
+      const fresh = await loadLog(op.tab);
+      if (fresh.items.some(i => i.serial === op.serial && norm(i.text) === norm(op.text) && Math.abs(i.amt - op.amt) < 0.005)) return;
+    }
+    return addLog(op.tab, op.serial, op.text, op.amt, op.cleared);
+  }
+  if (op.type === "item") {
+    if (op.maybeSent) {
+      const t = tabForSerial(op.serial); const m = t && await loadMonth(t);
+      const amtKey = op.kind === "income" ? "inc" : "bill";
+      if (m && m.rows.some(r => r.serial === op.serial && norm(r.desc) === norm(op.desc) && Math.abs(r[amtKey] - op.amt) < 0.005)) return;
+    }
+    return addItem(op.kind, op.serial, op.desc, op.amt, op.note, op.cleared);
+  }
+  if (op.type === "row") {
+    const m = await loadMonth(op.title);
+    let row = m.rows.find(r => r.r === op.r && norm(r.desc) === norm(op.origDesc));
+    if (!row) row = m.rows.find(r => r.serial === op.serial && norm(r.desc) === norm(op.origDesc));
+    if (!row) throw {code:"layout", message:`Couldn't find “${op.origDesc}” on ${op.title} anymore.`};
+    return saveRow(m, row, op.desc, op.amt, op.note, op.scope, op.newSerial);
+  }
+  if (op.type === "clearmove") {
+    // cleared early: move to today (just this one, or shift every later one by the same days) and mark it cleared
+    const m = await loadMonth(op.title);
+    const row = m.rows.find(r => r.serial === op.serial && r.kind === op.kind && norm(r.desc) === norm(op.desc));
+    if (!row) throw {code:"layout", message:`Couldn't find “${op.desc}” on ${op.title} anymore.`};
+    if (!m.hdrI) await upd(`${qt(op.title)}!I${m.hdr}`, [["Cleared"]]);
+    return moveRows(m, row, row.desc, null, row.note, op.scope, op.newSerial, {clearFirst:true});
+  }
+  if (op.type === "clearmovelog") {
+    const fresh = await loadLog("Spending Log"); const it = fresh.items.find(i => i.r === op.r);
+    if (!it) throw {code:"layout", message:"That expense isn't there anymore."};
+    if (!S.logHdrDone) { await upd(`'Spending Log'!E1`, [["Cleared"]]); S.logHdrDone = true; }
+    return upd(`'Spending Log'!A${op.r}:C${op.r}`, [[serialToUS(op.newSerial), it.text, it.amt]]).then(() => upd(`'Spending Log'!E${op.r}`, [["✓"]]));
+  }
+  if (op.type === "makerepeat") {
+    // turn a logged expense into a repeating bill: take it off the Spending Log, then add a bill on every date
+    const fresh = await loadLog("Spending Log"); const it = fresh.items.find(i => i.r === op.r);
+    if (op.maybeSent && !(it && norm(it.text) === norm(op.origText))) return 0;   // already done on an earlier try
+    if (it && norm(it.text) === norm(op.origText)) await deleteLog("Spending Log", it);
+    let n = 0, skipped = 0;
+    for (const d of op.dates) {
+      toast(`Adding ${n + skipped + 1} of ${op.dates.length}…`, 0);
+      try { await addItem("bill", d, op.text, op.amt, op.note, n === 0 && op.cleared); n++; } catch(e){ skipped++; if (n === 0 && skipped === 1 && d === op.dates[0]) throw e; }
+    }
+    return n;
+  }
+  if (op.type === "clear") {
+    const mark = op.val ? "✓" : "";
+    if (op.target === "log") {
+      if (!S.logHdrDone) { await upd(`${qt(op.tab)}!E1`, [["Cleared"]]); S.logHdrDone = true; }
+      return upd(`${qt(op.tab)}!E${op.r}`, [[mark]]);
+    }
+    const m = await loadMonth(op.title);
+    let row = m.rows.find(r => r.r === op.r && norm(r.desc) === norm(op.desc));
+    if (!row) row = m.rows.find(r => r.serial === op.serial && norm(r.desc) === norm(op.desc));
+    if (!row) throw {code:"layout", message:`Couldn't find “${op.desc}” on ${op.title} anymore.`};
+    if (!m.hdrI) await upd(`${qt(op.title)}!I${m.hdr}`, [["Cleared"]]);
+    return upd(`${qt(op.title)}!I${row.r}`, [[mark]]);
+  }
+  if (op.type === "editlog") {
+    const fresh = await loadLog(op.tab);
+    const it = fresh.items.find(i => i.r === op.r);
+    if (!it) throw {code:"layout", message:"That log entry isn't there anymore."};
+    return editLog(op.tab, it, op.serial, op.text, op.amt);
+  }
+}
+function enqueue(op, maybeSent){
+  S.queue.push({...op, qid: Date.now() + "-" + Math.random().toString(36).slice(2,7), maybeSent: !!maybeSent, at: Date.now()});
+  saveQueue();
+}
+async function submitOp(op, label, done){
+  if (S.busy && !flushing) return;
+  if (!navigator.onLine || S.queue.length || flushing) {
+    // Offline, or older changes still waiting: line this one up behind them so they land in order
+    enqueue(op, false); closeSheet();
+    toast(navigator.onLine ? "Saved — sending after the earlier changes" : "No signal — saved on this phone, will sync", 3500);
+    if (navigator.onLine) flushQueue();
+    return;
+  }
+  S.busy = true; toast(label + "…", 0);
+  try { await execOp(op); closeSheet(); await loadAll(); toast(done || "Saved"); }
+  catch(e){
+    if (!navigator.onLine || NETWORKISH.has(e && e.code)) {
+      enqueue(op, true); closeSheet();
+      toast("Couldn't reach Google Sheets — saved on this phone, will retry", 4000);
+    } else { const [h, b] = errInfo(e); toast(`${h}. ${b || ""}`, 6000); try { await loadAll(); } catch(_){} }
+  }
+  finally { S.busy = false; renderQueue(); }
+}
+let flushing = false;
+async function flushQueue(manual){
+  if (flushing || S.busy || !S.queue.length || !mcp) return;
+  if (!navigator.onLine) { if (manual) toast("Still offline"); return; }
+  flushing = true; S.busy = true; let sent = 0, stuck = null;
+  renderQueue();
+  while (S.queue.length){
+    const op = S.queue[0];
+    try { await execOp(op); S.queue.shift(); sent++; saveQueue(); }
+    catch(e){
+      if (!navigator.onLine || NETWORKISH.has(e && e.code)) { op.maybeSent = true; saveQueue(); break; }
+      stuck = {op, e}; break;   // a real problem (e.g. row no longer exists): stop and let the user decide
+    }
+  }
+  flushing = false; S.busy = false;
+  if (stuck) { stuck.op.error = errInfo(stuck.e).join(": "); saveQueue(); }
+  if (sent) { await loadAll(); toast(`Synced ${sent} change${sent > 1 ? "s" : ""}`); }
+  else if (manual && !stuck) toast("Couldn't reach Google Sheets yet");
+  renderQueue();
+}
+function opLabel(op){
+  const d = short(op.serial || todaySerial());
+  if (op.type === "log") return `${op.tab === "Spending Log" ? "Expense" : "Savings"} · ${op.text} · ${money(op.amt)} · ${d}${op.cleared ? " · cleared" : ""}`;
+  if (op.type === "item") return `${op.kind === "income" ? "Income" : "Bill"} · ${op.desc} · ${money(op.amt)} · ${d}`;
+  if (op.type === "row") return `Edit ${op.origDesc} → ${money(op.amt)}${op.scope === "future" ? " (and later)" : ""}`;
+  if (op.type === "clearmove") return `Cleared early · move ${op.desc} to ${short(op.newSerial)}${op.scope === "future" ? " (and later)" : ""}`;
+  if (op.type === "clearmovelog") return `Cleared early · move expense to ${short(op.newSerial)}`;
+  if (op.type === "makerepeat") return `Make repeating · ${op.text} · ${op.dates.length} bills`;
+  if (op.type === "clear") return `${op.val ? "Mark" : "Unmark"} cleared · ${op.desc || op.text || ""}`;
+  if (op.type === "editlog") return `Edit log entry · ${op.text} · ${money(op.amt)}`;
+  return "Change";
+}
+function renderQueue(){
+  const el = $("#queue"); if (!el) return;
+  if (!S.queue.length && !S.offline) { el.innerHTML = ""; return; }
+  const n = S.queue.length;
+  el.innerHTML = `<div class="card qbox">
+    <div class="qhead"><b>${S.offline || !navigator.onLine ? "Offline" : "Waiting to sync"}</b>${n ? `<button class="qsync" id="btnSync">${flushing ? "Syncing…" : "Sync now"}</button>` : ""}</div>
+    <div class="hint" style="margin-top:2px">${n ? `${n} change${n > 1 ? "s" : ""} saved on this phone. They'll go to your sheet as soon as there's signal.` : `Showing your numbers as of ${S.loadedAt ? S.loadedAt.toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}) : "the last sync"}. New entries are saved on this device and sync when you're back online.`}</div>
+    ${S.queue.map(op => `<div class="qitem"><span>${esc(opLabel(op))}${op.error ? `<small class="neg">${esc(op.error)}</small>` : ""}</span><button class="qx" data-qdel="${esc(op.qid)}" aria-label="Discard">✕</button></div>`).join("")}
+  </div>`;
+}
+
+/* ---------- running-balance periods ---------- */
+function periodRanges(T){
+  const p = parts(T);
+  // Pay week runs Fri–Thu, matching the sheet's Everyday spending stretches
+  const back = (p.w - 5 + 7) % 7;
+  const wk = [T - back, T - back + 6];
+  const mo = [toSerial(p.y, p.m, 1), toSerial(p.y, p.m + 1, 0)];
+  const q0 = Math.floor(p.m / 3) * 3;
+  const qt_ = [toSerial(p.y, q0, 1), toSerial(p.y, q0 + 3, 0)];
+  return [
+    {key:"day", name:"Today", a:T, b:T, sub:dayLabel(T)},
+    {key:"week", name:"This pay week", a:wk[0], b:wk[1], sub:`${short(wk[0])} – ${short(wk[1])}`},
+    {key:"month", name:"This month", a:mo[0], b:mo[1], sub:`${MON[p.m]} ${p.y}`},
+    {key:"quarter", name:`Q${q0/3 + 1}`, a:qt_[0], b:qt_[1], sub:`${MON[q0]} – ${MON[q0+2]} ${p.y}`},
+  ];
+}
+function periodTabs(T){
+  if (!S.tabs.length) return [];
+  const set = new Set();
+  for (const r of periodRanges(T)) {
+    for (let s = r.a; s < r.b; s += 7) { const t = tabForSerial(s); if (t) set.add(t); }
+    const t = tabForSerial(r.b); if (t) set.add(t);
+  }
+  const p = parts(T), nm = tabForSerial(toSerial(p.y, p.m + 1, 15)); if (nm) set.add(nm);
+  return [...set];
+}
+function periodStats(){
+  const months = S.periodMonths || [];
+  if (!months.length) return null;
+  const rows = [];
+  months.forEach((m, mi) => m.rows.forEach(r => { if (r.kind === "blank" || r.serial == null) return; if (r.kind === "start" && mi > 0) return; rows.push(r); }));
+  const T = todaySerial();
+  const balAt = s => { let b = null; for (const r of rows) if (r.serial <= s) b = r.bal; return b; };
+  const firstBal = rows.length ? rows[0].bal : 0;
+  const lastSerial = rows.length ? rows[rows.length-1].serial : T;
+  const sumLog = (log, a, b) => log.items.filter(i => i.serial >= a && i.serial <= b).reduce((x, i) => x + i.amt, 0);
+  return periodRanges(T).map(p => {
+    const before = balAt(p.a - 1); const start = before == null ? firstBal : before;
+    const now = balAt(Math.min(T, p.b)); const end = balAt(p.b);
+    const inc = rows.filter(r => r.kind === "income" && r.serial >= p.a && r.serial <= p.b).reduce((x, r) => x + r.inc, 0);
+    const bills = rows.filter(r => r.kind === "bill" && r.serial >= p.a && r.serial <= p.b).reduce((x, r) => x + r.bill, 0);
+    const spent = sumLog(S.spend, p.a, Math.min(T, p.b));
+    const saved = sumLog(S.save, p.a, Math.min(T, p.b));
+    const pct = p.b === p.a ? 100 : Math.max(0, Math.min(100, Math.round((T - p.a + 1) / (p.b - p.a + 1) * 100)));
+    const partial = p.b > lastSerial;
+    return {...p, start, now: now == null ? start : now, end: end == null ? start : end, inc, bills, spent, saved, pct, partial};
+  });
+}
+function safeStats(){
+  const months = S.periodMonths || []; if (!months.length) return null;
+  const T = todaySerial(), p = parts(T);
+  const end = toSerial(p.y, p.m + 2, 0);              // last day of next month
+  const rows = [];
+  months.forEach((m, mi) => m.rows.forEach(r => { if (r.kind === "blank" || r.serial == null) return; if (r.kind === "start" && mi > 0) return; rows.push(r); }));
+  let now = null; for (const r of rows) if (r.serial <= T) now = r.bal;
+  if (now == null) now = rows.length ? rows[0].bal : 0;
+  // Anything spent today lowers every balance after it, so the safe amount is the lowest point from now to `end`
+  let low = now, lowDay = T;
+  for (const r of rows) if (r.serial > T && r.serial <= end && r.bal < low) { low = r.bal; lowDay = r.serial; }
+  const covered = rows.length ? rows[rows.length-1].serial : T;
+  const weeks = Math.max(1, (end - T + 1) / 7);
+  const safe = Math.max(0, low);
+  // Your actual pace: logged spending over the last 4 weeks (or since the log starts)
+  const first = S.spend.items.length ? Math.min(...S.spend.items.map(i => i.serial)) : T;
+  const from = Math.max(first, T - 27), days = T - from + 1;
+  const spent = S.spend.items.filter(i => i.serial >= from && i.serial <= T).reduce((a, i) => a + i.amt, 0);
+  const pace = days > 0 ? spent / days * 7 : 0;
+  // After the tightest day, how much more room opens up (lowest later balance minus the low point)?
+  let low2 = null; for (const r of rows) if (r.serial > lowDay && r.serial <= end && (low2 == null || r.bal < low2)) low2 = r.bal;
+  const after = low2 == null ? 0 : Math.max(0, low2 - Math.max(low, 0));
+  const weeksAfter = Math.max(1, (end - lowDay) / 7);
+  return {safe, short: low < 0 ? -low : 0, lowDay, perWeek: safe / weeks, weeks, end, pace, spent, from, days, after, afterPerWeek: after / weeksAfter, weeksAfter,
+    partial: covered < end - 3, endLabel: `${MON[parts(end).m]} ${parts(end).d}`};
+}
+function safeHTML(){
+  const s = safeStats(); if (!s) return "";
+  const enough = s.days >= 14;
+  const over = enough && s.lowDay > todaySerial() + 7 && s.pace > s.perWeek;
+  const nearLow = s.lowDay > todaySerial() && s.after > 0;
+  return `<div class="card pcard safe">
+    <div class="ph"><b style="display:flex;justify-content:space-between">Safe to spend<span id="liveDot">● live</span></b><small>Now through ${esc(s.endLabel)} · Estimate</small></div>
+    ${s.short
+      ? `<div class="pnow neg">$0.00</div><div class="pmeta neg">Already ${money(s.short)} short on ${esc(short(s.lowDay))}. Trim a bill or move a payment.</div>`
+      : nearLow
+        ? `<div class="pnow">${money(s.safe)}</div>
+           <div class="pmeta">between now and <b>${esc(short(s.lowDay))}</b>, your tightest day</div>
+           <div class="pmeta" style="margin-top:4px">Then about <b>${money(s.after)}</b> more through ${esc(s.endLabel)} (≈ ${money(s.afterPerWeek)}/week)</div>`
+        : `<div class="pnow">${money(s.safe)}</div>
+           <div class="pmeta">≈ <b>${money(s.perWeek)}/week</b> for the next ${Math.round(s.weeks)} weeks</div>`}
+    <div class="pflow" style="margin-top:8px">${enough
+      ? `<span class="${over ? "neg" : "pin"}">You've averaged ${money(s.pace)}/week over the last ${s.days} days${over ? " — above the safe pace" : ""}</span>`
+      : `<span>${money(s.spent)} logged since ${esc(short(s.from))}. Your weekly average shows after 2 weeks of history.</span>`}</div>
+    <p class="est">Estimate only. It assumes every paycheck comes in at the amount on your sheet and every bill is paid as listed${s.partial ? ", and it only counts months that have a tab so far" : ""}. A smaller check means less to spend.</p>
+  </div>`;
+}
+function periodsHTML(){
+  if (!S.periodMonths) return "";
+  return `<div class="pgrid" style="margin-top:12px">${safeHTML()}</div>`;
+}
+/* ---------- spending-plan summaries ---------- */
+function mergedRows(){
+  const rows = [];
+  (S.periodMonths || []).forEach((m, mi) => m.rows.forEach(r => { if (r.kind === "blank" || r.serial == null) return; if (r.kind === "start" && mi > 0) return; rows.push(r); }));
+  return rows;
+}
+const getGoal = () => { const v = parseFloat(lsGet("cf_goal")); return isNaN(v) ? 50 : v; };
+const getCushion = () => { const v = parseFloat(lsGet("cf_cushion")); return isNaN(v) ? 100 : v; };
+function planStats(){
+  const rows = mergedRows(); if (!rows.length) return null;
+  const T = todaySerial(), p = parts(T), end = toSerial(p.y, p.m + 2, 0);
+  const goal = getGoal(), cushion = getCushion();
+  let balNow = rows[0].bal; for (const r of rows) if (r.serial <= T) balNow = r.bal;
+  const spentToday = S.spend.items.filter(i => i.serial === T).reduce((a, i) => a + i.amt, 0);
+  // lowest point of each future day, plus the end of the horizon
+  const lows = new Map();
+  for (const r of rows) if (r.serial > T && r.serial <= end) lows.set(r.serial, Math.min(lows.has(r.serial) ? lows.get(r.serial) : Infinity, r.bal));
+  let endBal = balNow; for (const r of rows) if (r.serial <= end) endBal = r.bal;
+  if (!lows.has(end)) lows.set(end, endBal);
+  const paydays = rows.filter(r => r.kind === "income" && r.serial > T && r.serial <= end).map(r => r.serial);
+  const solve = g => {
+    // daily amount d so that, at every checkpoint t: balance(t) + today's spending already counted − cushion − savings set aside on each payday so far − d × days ≥ 0
+    let d = Infinity, tight = T;
+    const check = (t, bal) => {
+      const days = t - T + 1, saved = g * paydays.filter(s => s <= t).length;
+      const v = (bal + spentToday - cushion - saved) / days;
+      if (v < d) { d = v; tight = t; }
+    };
+    check(T, balNow);
+    for (const [t, bal] of lows) check(t, bal);
+    return {d, tight};
+  };
+  const withGoal = solve(goal), noGoal = solve(0);
+  return {T, end, goal, cushion, balNow, spentToday, daily: withGoal.d, tight: withGoal.tight, dailyNoGoal: noGoal.d, paydays: paydays.length,
+    endLabel: `${MON[parts(end).m]} ${parts(end).d}`};
+}
+function payWeek(T){ const back = (parts(T).w - 5 + 7) % 7; return [T - back, T - back + 6]; }
+function summariesHTML(){
+  const ps = planStats(); if (!ps) return "";
+  const T = ps.T, rows = mergedRows();
+  const tightRow = rows.filter(r => r.serial === ps.tight && r.kind === "bill").sort((a,b) => b.bill - a.bill)[0];
+  const daily = Math.max(0, ps.daily), leftToday = daily - ps.spentToday;
+  // 1) Daily allowance
+  let html = `<div class="card pcard safe wide">
+    <div class="ph"><b>Daily allowance</b><small>Covers every bill through ${esc(ps.endLabel)} and saves ${money(ps.goal)} each payday · Estimate</small></div>
+    ${ps.daily > 0
+      ? `<div class="pnow">${money(daily)}<span class="unit"> / day</span></div>
+         <div class="pmeta">≈ <b>${money(daily * 7)}</b> a week · <b class="${leftToday < 0 ? "neg" : ""}">${leftToday >= 0 ? money(leftToday) + " left today" : money(-leftToday) + " over today"}</b></div>`
+      : `<div class="pnow neg">$0.00<span class="unit"> / day</span></div>
+         <div class="pmeta neg">Saving ${money(ps.goal)} every payday doesn't fit before ${esc(short(ps.tight))}.${ps.dailyNoGoal > 0 ? ` Without the savings goal you'd have ${money(ps.dailyNoGoal)}/day.` : ""}</div>`}
+    <div class="pmeta" style="margin-top:6px">Tightest point: ${esc(short(ps.tight))}${tightRow ? ` (${esc(tightRow.desc)})` : ""} · keeps ${money(ps.cushion)} cushion</div>
+    <div class="pmeta">${ps.dailyNoGoal > 0 && ps.daily > 0 ? `Skip saving and it's ${money(ps.dailyNoGoal)}/day.` : ""}</div>
+    <button class="qsync" id="btnPlan" style="margin-top:10px">Adjust savings goal & cushion</button>
+    <p class="est">Estimate only. It assumes each paycheck comes in at the amount on your sheet, so a smaller check lowers it. Updates as you log spending.</p>
+  </div>`;
+  // 2) This pay week vs allowance
+  const [wa, wb] = payWeek(T);
+  const wSpent = S.spend.items.filter(i => i.serial >= wa && i.serial <= T).reduce((a, i) => a + i.amt, 0);
+  const wBudget = daily * (wb - wa + 1);
+  const pct = wBudget > 0 ? Math.min(100, Math.round(wSpent / wBudget * 100)) : 100;
+  html += `<div class="card pcard"><div class="ph"><b>This week's spending</b><small>${esc(short(wa))} – ${esc(short(wb))}</small></div>
+    <div class="pnow ${wSpent > wBudget ? "neg" : ""}">${money(wSpent)}</div>
+    <div class="pmeta">of ${money(wBudget)} allowance</div>
+    <div class="bar"><i style="width:${pct}%;${wSpent > wBudget ? "background:var(--warn)" : ""}"></i></div>
+    <div class="pflow"><span class="${wSpent > wBudget ? "neg" : "pin"}">${wSpent > wBudget ? money(wSpent - wBudget) + " over" : money(wBudget - wSpent) + " left this week"}</span></div></div>`;
+  // 3) Next paycheck
+  const next = rows.find(r => r.kind === "income" && r.serial > T);
+  if (next) {
+    const before = rows.filter(r => r.serial < next.serial).pop();
+    const due = rows.filter(r => r.kind === "bill" && r.serial > T && r.serial < next.serial).reduce((a, r) => a + r.bill, 0);
+    html += `<div class="card pcard"><div class="ph"><b>Next paycheck</b><small>${esc(dayLabel(next.serial))}</small></div>
+      <div class="pnow">${next.serial - T} day${next.serial - T === 1 ? "" : "s"}</div>
+      <div class="pmeta">${money(next.inc)} expected</div>
+      <div class="pflow" style="margin-top:8px"><span>−${money(due)} bills before it</span><span>Low before payday: ${money(before ? before.bal : ps.balNow)}</span></div></div>`;
+  }
+  // 4) Bills in the next 7 days
+  const soon = rows.filter(r => r.kind === "bill" && r.serial > T && r.serial <= T + 7 && r.bill);
+  html += `<div class="card pcard wide"><div class="ph"><b>Bills in the next 7 days</b><small>${soon.length ? money(soon.reduce((a, r) => a + r.bill, 0)) + " total" : "Nothing due"}</small></div>
+    ${soon.map(r => `<div class="lrow"><span>${esc(short(r.serial))} · ${esc(r.desc)}</span><b>${money(r.bill)}</b></div>`).join("")}</div>`;
+  // 5) Where the money goes this month
+  const mp = parts(T), ma = toSerial(mp.y, mp.m, 1), mb = toSerial(mp.y, mp.m + 1, 0);
+  const cats = new Map();
+  S.spend.items.filter(i => i.serial >= ma && i.serial <= mb && i.amt > 0).forEach(i => { const k = norm(i.text) || "other"; const c = cats.get(k) || {t: i.text || "Other", a: 0, n: 0}; c.a += i.amt; c.n++; cats.set(k, c); });
+  const top = [...cats.values()].sort((a, b) => b.a - a.a).slice(0, 5), topMax = top.length ? top[0].a : 1;
+  html += `<div class="card pcard wide"><div class="ph"><b>Where it's going</b><small>${MON[mp.m]} spending by description</small></div>
+    ${top.length ? top.map(c => `<div class="lrow"><span>${esc(c.t)}${c.n > 1 ? ` <small>×${c.n}</small>` : ""}</span><b>${money(c.a)}</b></div><div class="bar thin"><i style="width:${Math.round(c.a / topMax * 100)}%;background:var(--spend)"></i></div>`).join("") : `<div class="pmeta">Nothing logged yet this month.</div>`}</div>`;
+  // 6) Last 4 pay weeks
+  const weeks = []; for (let k = 3; k >= 0; k--) { const a = wa - 7 * k, b = a + 6; weeks.push({a, b, s: S.spend.items.filter(i => i.serial >= a && i.serial <= b).reduce((x, i) => x + i.amt, 0)}); }
+  const wMax = Math.max(1, ...weeks.map(w => w.s), daily * 7);
+  html += `<div class="card pcard wide"><div class="ph"><b>Weekly spending</b><small>Last 4 pay weeks · line = weekly allowance</small></div>
+    <div class="wk">${weeks.map(w => `<div class="wkc"><div class="wkb"><i style="height:${Math.round(w.s / wMax * 100)}%;${w.s > daily * 7 ? "background:var(--warn)" : ""}"></i><s style="bottom:${Math.round(daily * 7 / wMax * 100)}%"></s></div><b>${w.s ? "$" + Math.round(w.s) : "–"}</b><small>${esc(short(w.a))}</small></div>`).join("")}</div></div>`;
+  // 7) Savings progress
+  const sa = toSerial(mp.y, mp.m, 1);
+  const savedMonth = S.save.items.filter(i => i.serial >= sa && i.serial <= T).reduce((a, i) => a + i.amt, 0);
+  const paysMonth = rows.filter(r => r.kind === "income" && r.serial >= sa && r.serial <= mb).length;
+  const goalMonth = ps.goal * paysMonth;
+  const curTab = (S.periodMonths || []).find(m => m.title === tabForSerial(T));
+  html += `<div class="card pcard"><div class="ph"><b>Savings</b><small>${MON[mp.m]} goal ${money(goalMonth)}</small></div>
+    <div class="pnow">${money(savedMonth)}</div><div class="pmeta">saved this month</div>
+    <div class="bar"><i style="width:${goalMonth > 0 ? Math.min(100, Math.round(savedMonth / goalMonth * 100)) : 0}%;background:var(--save)"></i></div>
+    <div class="pflow"><span>Balance ${money(curTab ? curTab.sum.saveEnd : 0)}</span></div></div>`;
+  // 8) Bills this month: paid vs still to come
+  const mBills = rows.filter(r => r.kind === "bill" && r.serial >= ma && r.serial <= mb);
+  const paid = mBills.filter(r => r.serial <= T).reduce((a, r) => a + r.bill, 0), toCome = mBills.filter(r => r.serial > T).reduce((a, r) => a + r.bill, 0);
+  html += `<div class="card pcard"><div class="ph"><b>${MON[mp.m]} bills</b><small>${mBills.length} bills</small></div>
+    <div class="pnow">${money(toCome)}</div><div class="pmeta">still to come</div>
+    <div class="bar"><i style="width:${paid + toCome > 0 ? Math.round(paid / (paid + toCome) * 100) : 0}%"></i></div>
+    <div class="pflow"><span>${money(paid)} paid so far</span></div></div>`;
+  return `<div class="pgrid">${html}</div>`;
+}
+function planSheet(){
+  openSheet(`<h2>Daily allowance settings</h2>
+    <form id="planForm" autocomplete="off">
+      <label class="field"><span>Put into savings each payday</span><input class="money-in" id="fGoal" inputmode="decimal" value="${getGoal().toFixed(2)}"></label>
+      <label class="field"><span>Never let checking drop below</span><input id="fCushion" inputmode="decimal" value="${getCushion().toFixed(2)}"></label>
+      <p class="hint">The allowance holds back the savings amount every payday and keeps this cushion in checking at the tightest point. These stay on this phone.</p>
+      <div class="btns"><button type="button" class="btn" data-close>Cancel</button><button class="btn primary" type="submit">Save</button></div>
+    </form>`);
+}
+
+function tilesHTML(){
+  const st = periodStats(); if (!st) return "";
+  return summariesHTML() + `<div class="day" style="padding-top:18px"><span>Running balance</span></div>
+  <div class="pgrid">${st.map(p => `
+    <div class="card pcard">
+      <div class="ph"><b>${esc(p.name)}</b><small>${esc(p.sub)}</small></div>
+      <div class="pnow ${p.now < 0 ? "neg" : ""}">${money(p.now)}</div>
+      <div class="pmeta">${p.key === "day" ? `Started ${money(p.start)}` : `Ends ${money(p.end)}${p.partial ? "*" : ""}`}</div>
+      ${p.key === "day" ? "" : `<div class="bar"><i style="width:${p.pct}%"></i></div>`}
+      <div class="pflow"><span class="pin">+${money(p.inc)}</span><span>−${money(p.bills)} bills</span><span>−${money(p.spent)} spent</span>${p.saved ? `<span>${money(p.saved)} saved</span>` : ""}</div>
+    </div>`).join("")}</div>
+  ${st.some(p => p.partial) ? `<p class="hint">* Only counts months that have a tab in the sheet so far.</p>` : ""}`;
+}
+
+async function switchMonth(title){
+  if (S.busy) return;
+  S.loading = true; render();
+  try { S.month = await loadMonth(title); S.err = null; } catch(e){ S.err = e; }
+  S.loading = false; render();
+  const on = document.querySelector(".chip.on"); if (on) on.scrollIntoView({inline:"center", block:"nearest", behavior:"smooth"});
+}
+
+/* ---------- toast & busy ---------- */
+let toastTimer;
+function toast(msg, ms=2600){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); if (ms) toastTimer = setTimeout(() => t.hidden = true, ms); }
+async function run(label, fn, done){
+  if (S.busy) return; S.busy = true; toast(label + "…", 0);
+  try { await fn(); closeSheet(); await loadAll(); toast(done || "Saved"); }
+  catch(e){ const [h, b] = errInfo(e); toast(`${h}. ${b || ""}`, 6000); try { await loadAll(); } catch(_){} }
+  finally { S.busy = false; }
+}
+
+/* ---------- writes ---------- */
+async function addLog(tab, serial, text, amt, cleared){
+  const fresh = await loadLog(tab);
+  const r = fresh.lastRow + 1;
+  await upd(`${qt(tab)}!A${r}:C${r}`, [[serialToUS(serial), text, round2(amt)]]);
+  if (cleared) {
+    if (!S.logHdrDone) { await upd(`${qt(tab)}!E1`, [["Cleared"]]); S.logHdrDone = true; }
+    await upd(`${qt(tab)}!E${r}`, [["✓"]]);
+  }
+}
+async function editLog(tab, item, serial, text, amt){
+  await upd(`${qt(tab)}!A${item.r}:C${item.r}`, [[serialToUS(serial), text, round2(amt)]]);
+}
+async function deleteLog(tab, item){
+  // Keep the row (so the log stays one block for your Shortcuts) but zero it out.
+  await upd(`${qt(tab)}!B${item.r}:C${item.r}`, [["(deleted)", 0]]);
+}
+
+async function addItem(kind, serial, desc, amt, note, cleared){
+  const title = tabForSerial(serial);
+  if (!title) throw {code:"layout", message:"There's no month tab for that date yet."};
+  const m = await loadMonth(title);
+  const real = m.rows.filter(r => r.kind !== "blank" && r.serial != null);
+  if (real.length && serial < real[0].serial) throw {code:"layout", message:`“${title}” starts on ${short(real[0].serial)}. Pick a later date.`};
+  let pos = m.first;
+  for (const row of real) if (row.serial <= serial) pos = row.r;
+  const n = pos + 1, tq = qt(title), p = parts(serial);
+  await call("insert_dimension", {spreadsheetId:S.id, sheetId:m.sheetId, dimension:"ROWS", startIndex:pos, endIndex:pos+1, inheritFromBefore:true});
+  await upd(`${tq}!A${n}:F${n}`, [[serialToUS(serial), DOW[p.w], desc, kind === "income" ? round2(amt) : "", kind === "bill" ? round2(amt) : "", `=F${pos}+D${n}-E${n}`]]);
+  await upd(`${tq}!G${n}:I${n}`, [[note || "", "", cleared ? "✓" : ""]]);
+  if (cleared && !m.hdrI) await upd(`${tq}!I${m.hdr}`, [["Cleared"]]);
+  if (pos < m.last) {
+    // the row that used to follow `pos` now sits at n+1 and still points at F{pos}; re-link it
+    await upd(`${tq}!F${n+1}`, [[`=F${n}+D${n+1}-E${n+1}`]]);
+  } else {
+    // added after the last row: stretch the month totals to include it
+    const L = m.last + 1, f = m.first;
+    await upd(`${tq}!E4:E5`, [[`=SUM(D${f}:D${L})`], [`=SUM(E${f}:E${L})-E6-E9`]]);
+    await upd(`${tq}!E7:E8`, [[`=MIN(F${f}:F${L})`], [`=F${L}`]]);
+  }
+}
+
+async function saveRow(m, row, desc, amt, note, scope, newSerial){
+  if (newSerial != null && row.serial != null && newSerial !== row.serial) return moveRows(m, row, desc, amt, note, scope, newSerial);
+  const isInc = row.kind === "income";
+  const vals = isInc ? [desc, round2(amt), ""] : [desc, "", round2(amt)];
+  const targets = [{title:m.title, r:row.r}];
+  if (scope === "future") targets.push(...await findFuture(m, row));
+  let i = 0;
+  for (const t of targets){
+    i++; if (targets.length > 1) toast(`Updating ${i} of ${targets.length}…`, 0);
+    await upd(`${qt(t.title)}!C${t.r}:E${t.r}`, [vals]);
+  }
+  if (note !== row.note) await upd(`${qt(m.title)}!G${row.r}`, [[note]]);
+  return targets.length;
+}
+async function findFuture(m, row){
+  const key = norm(row.desc), isInc = row.kind === "income", out = [];
+  for (const r of m.rows) if (r.r > row.r && r.kind === row.kind && norm(r.desc) === key) out.push({title:m.title, r:r.r, serial:r.serial});
+  const later = S.tabs.filter(t => tabKey(t.title) > tabKey(m.title));
+  if (!later.length) return out;
+  const p = await call("get_spreadsheet", {spreadsheetId:S.id, includeGridData:true, ranges:later.map(t => `${qt(t.title)}!A1:F160`),
+    fields:["sheets.properties.title","sheets.data.rowData.values.userEnteredValue"]});
+  for (const sh of (p.sheets||[])){
+    const title = sh.properties && sh.properties.title;
+    const rd = (sh.data && sh.data[0] && sh.data[0].rowData) || [];
+    const {cell, str, fx, has} = parseGrid(rd);
+    let hdr = 0; for (let r = 1; r <= rd.length; r++) if (str(r,0) === "Date") { hdr = r; break; }
+    if (!hdr) continue;
+    for (let r = hdr+1; r <= rd.length; r++){
+      if (!fx(r,5)) break;
+      if (norm(str(r,2)) !== key || fx(r,3) || fx(r,4)) continue;
+      const rowIsInc = has(r,3) && !has(r,4);
+      if (rowIsInc === isInc) { const u = cell(r,0).userEnteredValue; out.push({title, r, serial: u && typeof u.numberValue === "number" ? u.numberValue : null}); }
+    }
+  }
+  out.sort((a,b) => (tabKey(a.title) - tabKey(b.title)) || (a.r - b.r));
+  return out;
+}
+async function removeRow(m, row){
+  await upd(`${qt(m.title)}!A${row.r}:E${row.r}`, [["","","","",""]]);
+  if (row.note || row.cleared) await upd(`${qt(m.title)}!G${row.r}:I${row.r}`, [["", "", ""]]);
+}
+// Changing a date: take the item off its old day and put it back in on the new day (in whichever month tab that date falls).
+// "future" moves every later matching item by the same number of days, so a bill moved from the 11th to the 15th moves in every month.
+async function moveRows(m, row, desc, amt, note, scope, newSerial, opts = {}){
+  const delta = newSerial - row.serial, kind = row.kind;
+  const targets = [{title:m.title, serial:row.serial, first:true}];
+  if (scope === "future") (await findFuture(m, row)).forEach(t => { if (t.serial != null) targets.push({title:t.title, serial:t.serial}); });
+  let done = 0, skipped = 0;
+  for (const t of targets){
+    if (targets.length > 1) toast(`Moving ${done + skipped + 1} of ${targets.length}…`, 0);
+    const mm = await loadMonth(t.title);
+    const rr = mm.rows.find(x => x.serial === t.serial && x.kind === kind && norm(x.desc) === norm(row.desc));
+    const dest = t.serial + delta;
+    if (!rr || !tabForSerial(dest)) { skipped++; continue; }
+    const own = kind === "income" ? rr.inc : rr.bill;
+    const amount = amt == null ? own : (t.first || scope === "future" ? amt : own);
+    await removeRow(mm, rr);
+    try { await addItem(kind, dest, desc, amount, t.first ? note : rr.note, t.first && opts.clearFirst ? true : rr.cleared); done++; }
+    catch(e){ skipped++; if (t.first) throw e; }
+  }
+  if (skipped) toast(`Moved ${done}; ${skipped} couldn't be moved (no month tab for that date)`, 5000);
+  return done;
+}
+
+/* ---------- render ---------- */
+function render(){
+  renderQueue(); renderMonths(); renderHero(); if (!$("#calc").innerHTML) renderCalc(); $("#periods").innerHTML = ""; renderView();
+  document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === S.view));
+  $("#fab").hidden = !mcp || !!(S.err && !S.month);
+  $("#foot").innerHTML = S.loadedAt ? `<span class="livefrom">Live from “${esc(S.title || "your sheet")}” · </span>Updated ${S.loadedAt.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})} · <a href="https://docs.google.com/spreadsheets/d/${esc(S.id)}/edit" target="_blank" rel="noopener">Open sheet</a>` : "";
+  $("#foot").innerHTML += `<div><button class="kbbtn" id="btnKeys" aria-label="Keyboard shortcuts">⌘</button></div>`;
+}
+function renderMonths(){
+  const cur = S.month && S.month.title;
+  $("#months").innerHTML = S.tabs.map(t => `<button class="chip ${t.title === cur ? "on" : ""}" data-month="${esc(t.title)}">${esc(t.title)}</button>`).join("");
+}
+function renderHero(){
+  const h = $("#hero");
+  if (!mcp && !S.loading) { h.innerHTML = `<div class="card notice"><h3>Connect your Cash Flow sheet</h3><p>Paste your Apps Script web app link and your key once. After that the app opens with or without signal.</p><button class="btn primary" id="btnSettings2" style="width:100%">Open Settings</button></div>`; return; }
+  if (S.err && !S.month) { h.innerHTML = notice(errInfo(S.err), true); return; }
+  if (!S.month) { h.innerHTML = `<div class="card hero"><div class="skel" style="width:40%"></div><div class="skel" style="height:38px;width:65%"></div><div class="skel" style="width:80%"></div></div>`; return; }
+  const m = S.month, T = todaySerial(), rows = m.rows.filter(r => r.kind !== "blank");
+  const dated = rows.filter(r => r.serial != null);
+  const firstS = dated.length ? dated[0].serial : T, lastS = dated.length ? dated[dated.length-1].serial : T;
+  const inMonth = T >= firstS && T <= lastS + 3;
+  let bal = m.sum.start, label = "In Checking right now";
+  if (inMonth) { for (const r of rows) if (r.serial != null && r.serial <= T) bal = r.bal; }
+  else if (T > lastS) { bal = m.sum.ending; label = `Ended ${m.title} with`; }
+  else { label = `Starts ${m.title} with`; }
+  let pill = "";
+  if (inMonth) {
+    const next = rows.find(r => r.kind === "income" && r.serial > T);
+    if (next) {
+      const due = rows.filter(r => r.kind === "bill" && r.serial > T && r.serial < next.serial).reduce((a,r) => a + r.bill, 0);
+      pill = `<span class="pill">Next pay ${esc(short(next.serial))} · ${money(next.inc)}</span>` + (due ? ` <span class="pill ${due > bal ? "warn" : ""}">${money(due)} due before then</span>` : "");
+    }
+  }
+  const ahead = rows.filter(r => r.serial != null && r.serial >= (inMonth ? T : firstS));
+  const low = ahead.length ? Math.min(...ahead.map(r => r.bal)) : m.sum.lowest;
+  h.innerHTML = `<div class="card hero">
+    <div class="lbl">${esc(label)}</div>
+    <div class="big ${bal < 0 ? "neg" : ""}">${money(bal)}</div>
+    <div class="pills">${pill}</div>
+    ${clearedLine()}
+    <div class="stats">
+      <div class="stat"><small>Month end</small><b class="${m.sum.ending < 0 ? "neg" : ""}">${money(m.sum.ending)}</b></div>
+      <div class="stat"><small>${inMonth ? "Low ahead" : "Lowest"}</small><b class="${low < 300 ? "neg" : ""}">${money(low)}</b></div>
+      <div class="stat"><small>Savings</small><b>${money(m.sum.saveEnd)}</b></div>
+      ${(() => { const ss = safeStats(); return ss ? `<button class="stat statbtn" id="btnSafe"><small>Safe to spend ›</small><b class="${ss.short ? "neg" : "safeval"}">${money(ss.safe)}</b></button>` : ""; })()}
+    </div>
+    <div class="totals">
+      <div class="tcap">${esc(m.title)} totals</div>
+      <div class="tgrid">
+        <span><small>Income</small><b>${money(m.sum.income)}</b></span><span><small>Bills</small><b>${money(m.sum.bills)}</b></span>
+        <span><small>Everyday</small><b>${money(m.sum.spend)}</b></span><span><small>To savings</small><b>${money(m.sum.saved)}</b></span>
+      </div>
+    </div>
+  </div>`;
+}
+function notice([head, body], retry){
+  return `<div class="card notice"><h3>${esc(head)}</h3><p>${esc(body)}</p>${retry ? `<button class="btn primary" id="retry" style="width:100%">Try again</button>` : ""}</div>`;
+}
+function renderView(){
+  const v = $("#view");
+  if (!S.month) { v.innerHTML = S.loading ? `<div class="card" style="padding:14px"><div class="skel"></div><div class="skel"></div><div class="skel" style="width:70%"></div></div>` : ""; return; }
+  // Keep the timeline's scroll spot across live refreshes; jump to today on open, month switch or tab switch
+  const old = $("#tl"), keep = old && !S.snapToday ? {top: old.scrollTop, month: S.tlMonth} : null;
+  if (S.err) v.innerHTML = notice(errInfo(S.err), true); else v.innerHTML = "";
+  if (S.view === "timeline") {
+    v.innerHTML += timelineHTML();
+    const tl = $("#tl");
+    if (tl) {
+      if (keep && keep.month === S.month.title) tl.scrollTop = keep.top;
+      else { const a = $("#tlAnchor"); tl.scrollTop = a ? Math.max(0, a.offsetTop - 4) : 0; }
+      S.tlMonth = S.month.title; S.snapToday = false;
+      const btn = $("#btnToday"), a = $("#tlAnchor");
+      const upd8 = () => { if (!a) { btn.hidden = true; return; } const d = a.offsetTop - tl.scrollTop; btn.hidden = Math.abs(d) < 120; btn.textContent = d < 0 ? "↑ Today" : "↓ Today"; };
+      tl.addEventListener("scroll", upd8, {passive:true}); upd8();
+    }
+  }
+  if (S.view === "spending") v.innerHTML += logHTML("spend");
+  if (S.view === "savings") v.innerHTML += logHTML("save");
+  if (S.view === "summaries") v.innerHTML += tilesHTML();
+  if (S.view === "uncleared") v.innerHTML += unclearedHTML();
+}
+function itemHTML(r, b){
+  r = b == null ? r : {...r, bal:b};
+  let desc = r.desc, sub = r.note, amt = "", cls = "k-" + r.kind;
+  if (r.kind === "start") { desc = "Starting balance"; amt = `<b>${money(r.bal)}</b>`; sub = ""; }
+  else if (r.kind === "spend" || r.kind === "save") {
+    const m = r.desc.match(/\(([^)]*)\)/);
+    desc = r.kind === "spend" ? "Everyday spending" : (r.bill < 0 ? "Pulled from savings" : "Moved to savings");
+    sub = (m ? m[1] + " · " : "") + (r.kind === "spend" ? "from Spending Log" : "from Savings Log");
+    amt = `<b>${r.bill ? (r.bill < 0 ? "+" : "-") + money(Math.abs(r.bill)) : "—"}</b><small>${money(r.bal)}</small>`;
+  } else if (r.kind === "income") { amt = `<b>+${money(r.inc)}</b><small>${money(r.bal)}</small>`; }
+  else { amt = `<b>${r.bill ? "-" + money(r.bill) : "—"}</b><small class="${r.bal < 0 ? "neg" : ""}">${money(r.bal)}</small>`; }
+  const badge = r.cleared ? `<span class="cbadge" title="Cleared">✓</span>` : "";
+  const body = `<span class="dot"></span><span class="mid"><span class="desc">${esc(desc)}${badge}</span>${sub ? `<span class="sub">${esc(sub)}</span>` : ""}</span><span class="amt">${amt}</span>`;
+  return `<button class="item ${cls} ${r.cleared ? "isClr" : ""}" data-row="${r.r}">${body}</button>`;
+}
+function pendHTML(x, bal){
+  return `<div class="item k-${x.kind} pending"><span class="dot"></span><span class="mid"><span class="desc">${esc(x.desc)}</span><span class="sub">⏳ Waiting to sync</span></span><span class="amt"><b class="${x.amt > 0 ? "pos" : ""}">${x.amt > 0 ? "+" : "-"}${money(Math.abs(x.amt))}</b><small>${money(bal)}</small></span></div>`;
+}
+function expHTML(it, bal){
+  return `<button class="item k-spend ${it.cleared ? "isClr" : ""}" data-log="spend" data-r="${it.r}"><span class="dot"></span><span class="mid"><span class="desc">${esc(it.text || "Expense")}${it.cleared ? `<span class="cbadge" title="Cleared">✓</span>` : ""}</span><span class="sub">Spending Log</span></span><span class="amt"><b>-${money(it.amt)}</b><small class="${bal < 0 ? "neg" : ""}">${money(bal)}</small></span></button>`;
+}
+function timelineHTML(){
+  const T = todaySerial(), m = S.month;
+  // Sheet rows, minus the weekly "Everyday spending" lumps…
+  const entries = m.rows.filter(r => r.kind !== "blank" && r.kind !== "spend").map((r, i) => ({s:r.serial, o:0, i, row:r}));
+  // …plus each Spending Log expense that this month tab counts, on its own date
+  S.spend.items.filter(it => it.amt && tabForSerial(it.serial) === m.title).forEach((it, i) => entries.push({s:it.serial, o:1, i, it}));
+  // changes saved on this device but not synced yet show up right away, marked as waiting
+  (S.queue || []).forEach((op, i) => {
+    if (op.type === "log" && op.tab === "Spending Log" && tabForSerial(op.serial) === m.title) entries.push({s:op.serial, o:2, i, pend:{desc:op.text, amt:-op.amt, kind:"spend"}});
+    if (op.type === "item" && tabForSerial(op.serial) === m.title) entries.push({s:op.serial, o:2, i, pend:{desc:op.desc, amt: op.kind === "income" ? op.amt : -op.amt, kind:op.kind}});
+  });
+  entries.sort((a,b) => (a.s ?? -1) - (b.s ?? -1) || a.o - b.o || a.i - b.i);
+  // Re-run the balance item by item (same math as the sheet's Running Balance column)
+  let bal = m.sum.start;
+  for (const e of entries){
+    if (e.pend) bal += e.pend.amt;
+    else if (e.it) bal -= e.it.amt;
+    else if (e.row.kind === "start") bal = e.row.bal;
+    else bal += (e.row.inc || 0) - (e.row.bill || 0);
+    e.bal = round2(bal);
+  }
+  const groups = []; for (const e of entries) { const g = groups[groups.length-1]; if (g && g.s === e.s) g.rows.push(e); else groups.push({s:e.s, rows:[e]}); }
+  let out = "", todayDone = false;
+  const hasToday = groups.some(g => g.s === T);
+  for (const g of groups){
+    // No entries dated today: drop a "Today" marker just before the first future day
+    if (!todayDone && !hasToday && g.s != null && g.s > T && groups[0].s <= T) { out += `<div class="today" id="tlAnchor">Today · ${esc(dayLabel(T))}</div>`; todayDone = true; }
+    const isToday = g.s === T;
+    const endBal = g.rows[g.rows.length-1].bal;
+    out += `<div class="${g.s != null && g.s < T ? "past" : ""}" ${isToday ? 'id="tlAnchor"' : ""}><div class="day ${isToday ? "isToday" : ""}"><span>${isToday ? "Today · " : ""}${g.s != null ? esc(dayLabel(g.s)) : ""}</span><span class="bal ${endBal < 0 ? "neg" : ""}">${money(endBal)}</span></div><div class="card group">${g.rows.map(e => e.pend ? pendHTML(e.pend, e.bal) : e.it ? expHTML(e.it, e.bal) : itemHTML(e.row, e.bal)).join("")}</div></div>`;
+  }
+  if (!out) return `<div class="empty">Nothing on this month yet.</div>`;
+  return `<div class="tlwrap"><div class="tl" id="tl">${out}<div style="height:12px"></div></div><button class="jump" id="btnToday" hidden>↑ Today</button></div>`;
+}
+function logHTML(which){
+  const isSpend = which === "spend", log = isSpend ? S.spend : S.save, T = todaySerial();
+  let head = "";
+  if (isSpend) {
+    const per = S.month.rows.filter(r => r.kind === "spend" && r.serial != null && r.serial <= T).pop();
+    if (per) { const m = per.desc.match(/\(([^)]*)\)/); head = `<div class="card hero" style="padding:14px 16px"><div class="lbl">Spent this stretch${m ? " · " + esc(m[1]) : ""}</div><div class="big" style="font-size:30px;margin:0">${money(per.bill)}</div></div>`; }
+  } else {
+    head = `<div class="card hero" style="padding:14px 16px"><div class="lbl">Savings balance (${esc(S.month.title)})</div><div class="big" style="font-size:30px;margin:0">${money(S.month.sum.saveEnd)}</div></div>`;
+  }
+  const items = [...log.items].sort((a,b) => b.serial - a.serial || b.r - a.r).slice(0, 120);
+  if (!items.length) return head + `<div class="empty">No entries yet.</div>`;
+  const groups = []; for (const it of items) { const g = groups[groups.length-1]; if (g && g.s === it.serial) g.items.push(it); else groups.push({s:it.serial, items:[it]}); }
+  return head + groups.map(g => {
+    const tot = g.items.reduce((a,i) => a + i.amt, 0);
+    return `<div class="day"><span>${esc(dayLabel(g.s))}</span><span class="bal">${money(tot)}</span></div><div class="card group">${g.items.map(i =>
+      `<button class="item k-${isSpend ? "spend" : "save"}" data-log="${which}" data-r="${i.r}"><span class="dot"></span><span class="mid"><span class="desc">${esc(i.text || (isSpend ? "Expense" : "Savings"))}</span></span><span class="amt"><b>${isSpend ? "-" + money(i.amt) : (i.amt < 0 ? "-" : "+") + money(Math.abs(i.amt))}</b></span></button>`).join("")}</div>`;
+  }).join("");
+}
+
+/* ---------- sheets (bottom panels) ---------- */
+function openSheet(html){ const s = $("#sheet"); s.innerHTML = `<div class="grab"></div>` + html; s.hidden = false; $("#scrim").hidden = false; s.scrollTop = 0; }
+function fitSheetToKeyboard(){
+  const vv = window.visualViewport, sh = $("#sheet"); if (!vv || !sh || sh.hidden || window.innerWidth >= 900) return;
+  const hidden = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+  sh.style.bottom = hidden > 40 ? hidden + "px" : "";
+  sh.style.maxHeight = hidden > 40 ? (vv.height - 12) + "px" : "";
+}
+if (window.visualViewport) { visualViewport.addEventListener("resize", fitSheetToKeyboard); visualViewport.addEventListener("scroll", fitSheetToKeyboard); }
+document.addEventListener("focusin", e => { if (e.target.closest && e.target.closest("#sheet") && /INPUT|TEXTAREA/.test(e.target.tagName)) setTimeout(() => e.target.scrollIntoView({block:"center", behavior:"smooth"}), 250); });
+function closeSheet(){ const sh = $("#sheet"); sh.hidden = true; sh.style.bottom = ""; sh.style.maxHeight = ""; $("#scrim").hidden = true; }
+
+function topTexts(items, n){
+  const c = new Map();
+  for (const i of items) { const k = norm(i.text); if (!k || k === "(deleted)") continue; const e = c.get(k) || {t:i.text.trim(), n:0, last:0}; e.n++; e.last = Math.max(e.last, i.serial); c.set(k, e); }
+  return [...c.values()].sort((a,b) => b.n - a.n || b.last - a.last).slice(0, n).map(e => e.t);
+}
+function addSheet(type){
+  type = type || lsGet("cf_lasttype") || "expense";
+  const titles = {expense:"Add expense", savings:"Move money to savings", income:"Add income", bill:"Add a bill"};
+  let chips = [];
+  if (type === "expense") chips = topTexts(S.spend.items, 8);
+  if (type === "savings") chips = topTexts(S.save.items, 4);
+  if (type === "income") chips = ["Paycheck","Extra income","Refund","Side work","Overtime"];
+  if (type === "bill") chips = [...new Set(S.month.rows.filter(r => r.kind === "bill" && r.desc).map(r => r.desc))].slice(0, 10);
+  const extra = (type === "income" || type === "bill");
+  openSheet(`
+    <div class="shead"><button type="button" class="hbtn" data-close>Cancel</button><b>${titles[type]}</b><button type="submit" form="addForm" class="hbtn primary">Add</button></div>
+    <div class="typeseg">${["expense","savings","income","bill"].map(t => `<button data-type="${t}" class="${t === type ? "on" : ""}">${t[0].toUpperCase() + t.slice(1)}<kbd>⌘${({expense:"E",savings:"S",income:"I",bill:"B"})[t]}</kbd></button>`).join("")}</div>
+    <form id="addForm" data-type="${type}" autocomplete="off">
+      <label class="field"><span>Amount</span><input class="money-in" id="fAmt" inputmode="decimal" placeholder="$0.00" required></label>
+      ${type === "savings" ? `<div class="seg-sm" id="dir"><button type="button" data-dir="in" class="on">Into savings</button><button type="button" data-dir="out">Out of savings</button></div>` : ""}
+      <label class="field"><span>${type === "expense" ? "What was it?" : type === "savings" ? "Note" : "Description"}</span><input id="fText" placeholder="${type === "expense" ? "Fuel, groceries…" : type === "savings" ? "moved to savings" : type === "income" ? "Paycheck" : "Bill name"}">
+        ${chips.length ? `<div class="chips">${chips.map(c => `<button type="button" data-chip="${esc(c)}">${esc(c)}</button>`).join("")}</div>` : ""}</label>
+      <label class="field"><span>Date</span><input id="fDate" type="date" value="${serialToIso(todaySerial())}" required></label>
+      ${type !== "savings" ? `<div class="field"><span>Bank status</span><div class="seg-sm" id="clrSeg"><button type="button" data-clrset="0" class="on">Not cleared yet</button><button type="button" data-clrset="1">Already cleared</button></div></div>` : ""}
+      ${extra ? `<label class="field"><span>Note (optional)</span><input id="fNote" placeholder="e.g. Weekly, Amazon"></label>` : ""}
+      <p class="hint">${type === "expense" ? "Goes on your Spending Log — it counts toward that week's Everyday spending."
+        : type === "savings" ? "Goes on your Savings Log — it comes out of checking and adds to savings."
+        : "Goes in on the right day of that month's tab; running balances recalc in the sheet."}</p>
+
+      <p class="hint kbdhint" style="text-align:center">Return or ⌘Return to add · Esc to cancel</p>
+    </form>`);
+  const a0 = $("#fAmt"); if (a0) a0.focus();
+  setTimeout(() => { const a = $("#fAmt"); if (a && document.activeElement !== a) a.focus(); }, 60);
+}
+/* ---------- cleared early: offer to move it to today ---------- */
+function findItem(target, r, title){
+  if (target === "log") { const it = S.spend.items.find(i => i.r === r); return it && {serial: it.serial, desc: it.text || "Expense", kind: "spend", it}; }
+  const m = [S.month, ...(S.periodMonths || [])].find(x => x && x.title === title); const row = m && m.rows.find(x => x.r === r);
+  return row && {serial: row.serial, desc: row.desc, kind: row.kind, row, m};
+}
+function earlyClearSheet(target, r, title){
+  const T = todaySerial(), x = findItem(target, r, title);
+  if (!x || x.serial == null || x.serial <= T || x.kind === "save") return false;
+  const days = x.serial - T;
+  // is it part of a repeating series? (same name and type later in the months already loaded)
+  const later = target === "row" ? [S.month, ...(S.periodMonths || [])].filter(Boolean).flatMap(m => m.rows).filter(y => y !== x.row && y.kind === x.kind && norm(y.desc) === norm(x.desc) && y.serial > x.serial) : [];
+  const repeating = later.length > 0;
+  S.pendingEarly = {target, r, title, serial: x.serial, desc: x.desc, kind: x.kind};
+  openSheet(`<h2>Cleared early?</h2>
+    <p class="hint" style="font-size:15px;margin-top:-4px"><b>${esc(x.desc)}</b> is scheduled for <b>${esc(dayLabel(x.serial))}</b>, ${days} day${days > 1 ? "s" : ""} from now. Move it to today (${esc(short(T))}) and mark it cleared?</p>
+    <div class="choices">
+      <button class="choice" data-early="one"><b>Move to today — just this once</b><small>Only this ${esc(short(x.serial))} ${target === "log" ? "expense" : x.kind === "income" ? "paycheck" : "bill"} moves. Later ones stay on their dates.</small></button>
+      ${repeating ? `<button class="choice" data-early="future"><b>Move to today — and all future “${esc(x.desc)}”</b><small>Every later one shifts ${days} day${days > 1 ? "s" : ""} earlier too, so the repeating schedule in your sheet matches.</small></button>` : ""}
+      <button class="choice" data-early="keep"><b>Keep ${esc(short(x.serial))}, just mark cleared</b><small>The date stays as scheduled.</small></button>
+    </div>
+    <div class="btns"><button type="button" class="btn" data-close>Cancel</button></div>`);
+  return true;
+}
+/* ---------- make an expense repeating ---------- */
+function sheetEnd(){ const k = tabKey(S.tabs[S.tabs.length - 1].title); return toSerial(Math.floor(k / 12), k % 12 + 1, 0); }
+function repeatDates(start, freq, months){
+  const p = parts(start), end = months === "all" ? sheetEnd() : Math.min(sheetEnd(), toSerial(p.y, p.m + months, p.d) - 1), out = [];
+  if (freq === "monthly") {
+    for (let k = 0; ; k++) {
+      const last = toSerial(p.y, p.m + k + 1, 0), d = Math.min(toSerial(p.y, p.m + k, p.d), last);   // the 31st becomes the 30th in short months
+      if (d > end) break; out.push(d);
+    }
+  } else { const step = freq === "weekly" ? 7 : 14; for (let d = start; d <= end; d += step) out.push(d); }
+  return out;
+}
+function repeatSheet(r){
+  const it = S.spend.items.find(i => i.r === r); if (!it) return;
+  S.rep = {r, freq: "monthly", months: 12};
+  const draw = () => {
+    const dates = repeatDates(it.serial, S.rep.freq, S.rep.months);
+    const seg = (key, opts) => `<div class="seg-sm">${opts.map(([v, l]) => `<button type="button" data-rset="${key}:${v}" class="${String(S.rep[key]) === String(v) ? "on" : ""}">${l}</button>`).join("")}</div>`;
+    openSheet(`<div class="shead"><button type="button" class="hbtn" data-close>Cancel</button><b>Make repeating</b><button type="submit" form="repForm" class="hbtn primary">Create</button></div>
+      <form id="repForm" data-r="${r}" autocomplete="off">
+        <label class="field"><span>Name</span><input id="fText" value="${esc(it.text)}"></label>
+        <label class="field"><span>Amount each time</span><input class="money-in" id="fAmt" inputmode="decimal" value="${it.amt.toFixed(2)}"></label>
+        <div class="field"><span>How often</span>${seg("freq", [["weekly","Weekly"],["biweekly","Every 2 weeks"],["monthly","Monthly"]])}</div>
+        <div class="field"><span>For how long</span>${seg("months", [[3,"3 months"],[6,"6 months"],[12,"1 year"],["all","Until sheet ends"]])}</div>
+        <p class="hint" style="font-size:14px">Adds <b>${dates.length} bill${dates.length === 1 ? "" : "s"}</b>${dates.length ? `, ${esc(short(dates[0]))} through ${esc(short(dates[dates.length - 1]))} ${parts(dates[dates.length - 1]).y}` : ""}. This ${esc(short(it.serial))} expense becomes the first one, so your balances don't change today. ${dates.length > 20 ? "This many takes a few minutes to write to the sheet." : ""}</p>
+      </form>`);
+  };
+  S.rep.draw = draw; draw();
+}
+function clearBlock(target, r, title, cleared){
+  const attrs = `data-clr="${target}" data-r="${r}"${title ? ` data-title="${esc(title)}"` : ""}`;
+  return `<div class="cstat ${cleared ? "on" : ""}">
+    <span>${cleared ? `<b>✓ Cleared</b> in your bank` : `<b>Not cleared</b> in your bank yet`}</span>
+    <button type="button" class="cstatbtn" ${attrs}>${cleared ? "Mark as not cleared" : "Mark as cleared"}</button></div>`;
+}
+// small screen for items that have nothing else to edit (savings moves, items from another month on the Uncleared tab)
+function clearOnlySheet(target, r, title){
+  let head = "", sub = "", cleared = false, extra = "";
+  if (target === "log") { const it = S.spend.items.find(i => i.r === r); if (!it) return; head = it.text || "Expense"; sub = `${dayLabel(it.serial)} · Expense · -${money(it.amt)}`; cleared = it.cleared; }
+  else {
+    const m = [S.month, ...(S.periodMonths || [])].find(x => x && x.title === title); const row = m && m.rows.find(x => x.r === r); if (!row) return;
+    const amt = (row.inc || 0) - (row.bill || 0);
+    head = row.kind === "save" ? (row.bill < 0 ? "Pulled from savings" : "Moved to savings") : row.desc;
+    sub = `${dayLabel(row.serial)} · ${row.kind === "save" ? "Savings Log" : row.kind === "income" ? "Income" : "Bill"} · ${amt > 0 ? "+" : "-"}${money(Math.abs(amt))}`;
+    cleared = row.cleared;
+    if (row.kind === "save") extra = `<button type="button" class="btn" id="goSavings" style="width:100%;margin-top:10px">Open Savings tab</button>`;
+  }
+  openSheet(`<h2>${esc(head)}</h2><div class="hint" style="margin-top:-6px">${esc(sub)}</div>${clearBlock(target, r, title, cleared)}${extra}
+    <div class="btns"><button type="button" class="btn" data-close>Close</button></div>`);
+}
+function rowSheet(r){
+  const m = S.month, row = m.rows.find(x => x.r === r); if (!row) return;
+  if (row.kind === "spend") { S.view = "spending"; render(); window.scrollTo({top:0, behavior:"smooth"}); return; }
+  if (row.kind === "save") { if (row.bill) clearOnlySheet("row", row.r, m.title); else { S.view = "savings"; render(); } return; }
+  if (row.kind === "start") { toast(`Starting balance is set on the sheet${m.title === S.tabs[0].title ? " (cell B4)" : " from last month's ending balance"}.`, 4000); return; }
+  const isInc = row.kind === "income", amt = isInc ? row.inc : row.bill;
+  openSheet(`
+    <div class="shead"><button type="button" class="hbtn" data-close>Cancel</button><b>Edit ${isInc ? "income" : "bill"}</b><button type="submit" form="rowForm" class="hbtn primary">Save</button></div>
+    <h2>${esc(row.desc || "Edit")}</h2>
+    <div class="hint" style="margin-top:-6px">${esc(row.serial != null ? dayLabel(row.serial) : "")} · ${isInc ? "Income" : "Bill"} · ${esc(m.title)}</div>
+    ${clearBlock("row", row.r, m.title, row.cleared)}
+    <form id="rowForm" data-r="${row.r}" autocomplete="off">
+      <label class="field"><span>Amount</span><input class="money-in" id="fAmt" inputmode="decimal" value="${amt ? amt.toFixed(2) : ""}" placeholder="$0.00"></label>
+      <label class="field"><span>Date</span><input id="fDate" type="date" value="${row.serial != null ? serialToIso(row.serial) : ""}"></label>
+      <label class="field"><span>Description</span><input id="fText" value="${esc(row.desc)}"></label>
+      <label class="field"><span>Note</span><input id="fNote" value="${esc(row.note)}"></label>
+      <div class="field"><span>Apply changes to</span></div>
+      <label class="radio"><input type="radio" name="scope" value="one" checked><span><b>Just this once</b><br><small class="hint">Only ${esc(row.serial != null ? short(row.serial) : "this one")}</small></span></label>
+      <label class="radio"><input type="radio" name="scope" value="future"><span><b>All future “${esc(row.desc)}”</b><br><small class="hint">This one and every later one, through your last month tab. A date change moves each by the same number of days.</small></span></label>
+      <div class="btns"><button type="button" class="btn danger" id="btnRemove" style="flex:1">Remove</button></div>
+    </form>`);
+}
+function logSheet(which, r){
+  const isSpend = which === "spend", log = isSpend ? S.spend : S.save, it = log.items.find(i => i.r === r); if (!it) return;
+  openSheet(`
+    <div class="shead"><button type="button" class="hbtn" data-close>Cancel</button><b>${isSpend ? "Edit expense" : "Edit savings move"}</b><button type="submit" form="logForm" class="hbtn primary">Save</button></div>
+    <h2>${esc(it.text || (isSpend ? "Expense" : "Savings move"))}</h2>
+    ${isSpend ? clearBlock("log", r, null, it.cleared) : ""}
+    ${isSpend ? `<button type="button" class="btn repeatbtn" data-repeat="${r}">↻ Make this repeating</button>` : ""}
+    <form id="logForm" data-log="${which}" data-r="${r}" autocomplete="off">
+      <label class="field"><span>Amount${isSpend ? "" : " (negative = taken out of savings)"}</span><input class="money-in" id="fAmt" inputmode="decimal" value="${it.amt.toFixed(2)}"></label>
+      <label class="field"><span>${isSpend ? "What" : "Note"}</span><input id="fText" value="${esc(it.text)}"></label>
+      <label class="field"><span>Date</span><input id="fDate" type="date" value="${serialToIso(it.serial)}"></label>
+      <div class="btns"><button type="button" class="btn danger" id="btnRemove" style="flex:1">Delete</button></div>
+    </form>`);
+}
+function settingsSheet(){
+  openSheet(`
+    <h2>Settings</h2>
+    <form id="setForm" autocomplete="off">
+      <label class="field"><span>Apps Script web app link</span><input id="fApi" value="${esc(CFG.url)}" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+      <label class="field"><span>Key (the KEY in your Apps Script)</span><input id="fKey" type="password" value="${esc(CFG.key)}" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+      <label class="radio" style="margin-top:-4px"><input type="checkbox" id="fShowKey"><span>Show key</span></label>
+      <label class="field"><span>Google Sheet link (for “Open sheet”)</span><input id="fId" value="${esc(S.id)}" autocapitalize="off"></label>
+      <p class="hint">Connected to: “${esc(S.title || "—")}”. The key is stored only on this device.</p>
+      <p class="hint"><button type="button" class="qsync" id="btnClearCache" style="background:var(--bg);color:var(--muted)">Clear saved offline data</button></p>
+      <p class="hint"><a href="https://docs.google.com/spreadsheets/d/${esc(S.id)}/edit" target="_blank" rel="noopener">Open this sheet in Google Sheets</a></p>
+      <div class="btns"><button type="button" class="btn" data-close>Close</button><button class="btn primary" type="submit">Save</button></div>
+    </form>`);
+}
+
+/* ---------- events ---------- */
+document.addEventListener("click", e => {
+  const t = e.target.closest("button, #scrim"); if (!t) return;
+  if (t.id === "scrim" || t.hasAttribute("data-close")) return closeSheet();
+  if (t.id === "fab") return S.month && addSheet();
+  if (t.id === "btnRefresh") { if (!S.busy && mcp) { S.tabs = []; loadAll(); } return; }
+  if (t.id === "btnSettings" || t.id === "btnSettings2") return settingsSheet();
+  if (t.id === "btnClearCache") { Object.keys(localStorage).filter(x => x.startsWith("cf_c:")).forEach(x => localStorage.removeItem(x)); toast("Saved offline data cleared — it refills next time you're online"); return; }
+  if (t.id === "retry") { S.tabs = []; return loadAll(); }
+  if (t.dataset.month) return switchMonth(t.dataset.month);
+  if (t.dataset.tab) { S.view = t.dataset.tab; return render(); }
+  if (t.dataset.add) return S.month && addSheet(t.dataset.add);
+  if (t.dataset.type) { lsSet("cf_lasttype", t.dataset.type); const amt = $("#fAmt") && $("#fAmt").value; addSheet(t.dataset.type); if (amt) $("#fAmt").value = amt; return; }
+  if (t.dataset.chip != null) { $("#fText").value = t.dataset.chip; return; }
+  if (t.dataset.clrset != null) { document.querySelectorAll("#clrSeg button").forEach(b => b.classList.toggle("on", b === t)); return; }
+  if (t.dataset.dir) { document.querySelectorAll("#dir button").forEach(b => b.classList.toggle("on", b === t)); return; }
+  if (t.dataset.row) return rowSheet(+t.dataset.row);
+  if (t.dataset.log) return logSheet(t.dataset.log, +t.dataset.r);
+  if (t.id === "btnSync") return flushQueue(true);
+  if (t.id === "btnPlan") return planSheet();
+  if (t.id === "btnKeys") return keysSheet();
+  if (t.id === "btnTop") { window.scrollTo({top:0, behavior:"smooth"}); return; }
+  if (t.id === "btnSafe") { openSheet(`<div class="pgrid">${safeHTML()}</div><div class="btns"><button type="button" class="btn" data-close>Close</button></div>`); return; }
+  if (t.dataset.clr) {
+    const wasOpen = !$("#sheet").hidden, box = t.closest(".cstat"), nowCleared = !(box && box.classList.contains("on"));
+    if (nowCleared && !t.hasAttribute("data-force")) { if (earlyClearSheet(t.dataset.clr, +t.dataset.r, t.dataset.title)) return; }
+    closeSheet(); toggleCleared(t.dataset.clr, +t.dataset.r, t.dataset.title);
+    if (wasOpen) toast(nowCleared ? "Marked as cleared" : "Marked as not cleared");
+    return;
+  }
+  if (t.dataset.early) {
+    const pe = S.pendingEarly; if (!pe) return; S.pendingEarly = null;
+    if (t.dataset.early === "keep") { closeSheet(); toggleCleared(pe.target, pe.r, pe.title); toast("Marked as cleared"); return; }
+    const T = todaySerial();
+    if (pe.target === "log") return submitOp({type:"clearmovelog", r: pe.r, newSerial: T}, "Moving to today", "Moved to today and marked cleared");
+    return submitOp({type:"clearmove", title: pe.title, serial: pe.serial, desc: pe.desc, kind: pe.kind, scope: t.dataset.early, newSerial: T},
+      t.dataset.early === "future" ? "Moving this and every later one" : "Moving to today", "Moved to today and marked cleared");
+  }
+  if (t.dataset.repeat) return repeatSheet(+t.dataset.repeat);
+  if (t.dataset.rset) {
+    const [k, v] = t.dataset.rset.split(":"); const keep = {text: $("#fText").value, amt: $("#fAmt").value};
+    S.rep[k] = v === "all" ? "all" : (isNaN(+v) ? v : +v); S.rep.draw(); $("#fText").value = keep.text; $("#fAmt").value = keep.amt; return;
+  }
+  if (t.dataset.unc) {
+    const r = +t.dataset.r, title = t.dataset.title;
+    if (t.dataset.unc === "log") return logSheet("spend", r);
+    if (title === S.month.title) { const row = S.month.rows.find(x => x.r === r); if (row && row.kind !== "save") return rowSheet(r); }
+    return clearOnlySheet("row", r, title);
+  }
+  if (t.id === "goSavings") { closeSheet(); S.view = "savings"; render(); return; }
+  if (t.id === "btnToday") { const a = $("#tlAnchor"), tl = $("#tl"); if (a && tl) tl.scrollTo({top: Math.max(0, a.offsetTop - 4), behavior:"smooth"}); return; }
+  if (t.dataset.qdel) {
+    if (!t.classList.contains("armed")) { t.classList.add("armed"); t.textContent = "Discard?"; return; }
+    S.queue = S.queue.filter(q => q.qid !== t.dataset.qdel); return saveQueue();
+  }
+  if (t.id === "btnRemove") {
+    if (!navigator.onLine || S.offline) { toast("Removing needs a connection — try again when you have signal", 3500); return; }
+    if (!t.classList.contains("armed")) { t.classList.add("armed"); t.textContent = "Tap to confirm"; return; }
+    const rf = $("#rowForm"), lf = $("#logForm");
+    if (rf) { const row = S.month.rows.find(x => x.r === +rf.dataset.r); return run("Removing", () => removeRow(S.month, row), "Removed"); }
+    if (lf) { const which = lf.dataset.log, it = (which === "spend" ? S.spend : S.save).items.find(i => i.r === +lf.dataset.r);
+      return run("Deleting", () => deleteLog(which === "spend" ? "Spending Log" : "Savings Log", it), "Deleted"); }
+  }
+});
+document.addEventListener("change", e => { if (e.target.id === "fShowKey") $("#fKey").type = e.target.checked ? "text" : "password"; });
+document.addEventListener("submit", e => {
+  e.preventDefault();
+  const f = e.target;
+  const amtRaw = $("#fAmt") ? parseMoney($("#fAmt").value) : 0;
+  if (f.id === "planForm") {
+    lsSet("cf_goal", String(Math.max(0, parseMoney($("#fGoal").value))));
+    lsSet("cf_cushion", String(Math.max(0, parseMoney($("#fCushion").value))));
+    closeSheet(); render(); toast("Allowance updated"); return;
+  }
+  if (f.id === "setForm") {
+    const v = $("#fId").value.trim(); const m = v.match(/\/d\/([a-zA-Z0-9_-]+)/); const id = m ? m[1] : v;
+    if (id) { S.id = id; lsSet("cf_sheet", id); }
+    const url = $("#fApi").value.trim(), key = $("#fKey").value.trim();
+    const changed = url !== CFG.url || key !== CFG.key;
+    CFG.url = url; CFG.key = key; lsSet("cf_api", url); lsSet("cf_key", key);
+    closeSheet();
+    if (url && key) { if (!mcp) { mcp = {}; startLive(); } if (changed) { S.tabs = []; loadAll().then(() => { if (!S.err) toast("Connected"); }); } }
+    else { mcp = null; render(); }
+    return;
+  }
+  if (!amtRaw && f.id !== "rowForm") { toast("Enter an amount"); return; }
+  if (f.id === "addForm") {
+    const type = f.dataset.type, serial = isoToSerial($("#fDate").value);
+    let text = $("#fText").value.trim(), note = $("#fNote") ? $("#fNote").value.trim() : "";
+    const amt = Math.abs(amtRaw);
+    const cleared = !!document.querySelector('#clrSeg button.on[data-clrset="1"]');
+    if (type === "expense") return submitOp({type:"log", tab:"Spending Log", serial, text: text || "Expense", amt, cleared}, "Adding expense", `Added ${money(amt)}`);
+    if (type === "savings") { const out = document.querySelector("#dir button.on").dataset.dir === "out";
+      return submitOp({type:"log", tab:"Savings Log", serial, text: text || (out ? "from savings" : "moved to savings"), amt: out ? -amt : amt}, "Saving", out ? `Pulled ${money(amt)} from savings` : `Moved ${money(amt)} to savings`); }
+    if (type === "income") return submitOp({type:"item", kind:"income", serial, desc: text || "Extra income", amt, note, cleared}, "Adding income", `Added +${money(amt)}`);
+    if (type === "bill") return submitOp({type:"item", kind:"bill", serial, desc: text || "Bill", amt, note, cleared}, "Adding bill", `Added ${money(amt)} bill`);
+  }
+  if (f.id === "rowForm") {
+    const row = S.month.rows.find(x => x.r === +f.dataset.r), scope = f.querySelector("input[name=scope]:checked").value;
+    const desc = $("#fText").value.trim() || row.desc, note = $("#fNote").value.trim();
+    const newSerial = $("#fDate") && $("#fDate").value ? isoToSerial($("#fDate").value) : row.serial;
+    return submitOp({type:"row", title:S.month.title, r:row.r, serial:row.serial, origDesc:row.desc, desc, amt:Math.abs(amtRaw), note, scope, newSerial},
+      newSerial !== row.serial ? (scope === "future" ? "Moving every later one" : "Moving") : (scope === "future" ? "Updating every later one" : "Saving"), "Saved");
+  }
+  if (f.id === "repForm") {
+    const it = S.spend.items.find(i => i.r === +f.dataset.r); if (!it) return;
+    const dates = repeatDates(it.serial, S.rep.freq, S.rep.months);
+    if (!dates.length) { toast("No dates fall inside your month tabs"); return; }
+    const text = $("#fText").value.trim() || it.text, amt = Math.abs(amtRaw);
+    const note = {weekly:"Weekly", biweekly:"Every 2 weeks", monthly:"Monthly"}[S.rep.freq];
+    return submitOp({type:"makerepeat", r: it.r, origText: it.text, text, amt, note, dates, cleared: it.cleared}, `Creating ${dates.length} bills`, "Repeating bills added");
+  }
+  if (f.id === "logForm") {
+    const which = f.dataset.log;
+    return submitOp({type:"editlog", tab: which === "spend" ? "Spending Log" : "Savings Log", r:+f.dataset.r, serial:isoToSerial($("#fDate").value), text:$("#fText").value.trim(), amt: which === "spend" ? Math.abs(amtRaw) : amtRaw}, "Saving");
+  }
+});
+
+/* ---------- keyboard shortcuts (Magic Keyboard) ---------- */
+// ⌘E expense · ⌘I income · ⌘B bill · ⌘S savings · Esc closes · ⌘Return saves the open form
+const KEYMAP = {e:"expense", i:"income", b:"bill", s:"savings"};
+document.addEventListener("keydown", e => {
+  const k = (e.key || "").toLowerCase();
+  if (e.key === "Escape" && !$("#sheet").hidden) { e.preventDefault(); closeSheet(); return; }
+  if ((e.metaKey || e.ctrlKey) && k === "enter") {
+    const f = $("#sheet:not([hidden]) form"); if (f) { e.preventDefault(); f.requestSubmit(); } return;
+  }
+  if ((e.metaKey || e.ctrlKey) && (k === "/" || k === "?")) { e.preventDefault(); keysSheet(); return; }
+  if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || !KEYMAP[k]) return;
+  e.preventDefault(); e.stopPropagation();
+  if (!S.month || !mcp) return;
+  const amt = !$("#sheet").hidden && $("#addForm") && $("#fAmt") ? $("#fAmt").value : "";   // keep a typed amount when switching type
+  lsSet("cf_lasttype", KEYMAP[k]); addSheet(KEYMAP[k]);
+  if (amt) $("#fAmt").value = amt;
+}, true);
+
+function keysSheet(){
+  const row = (k, d) => `<div class="krow"><span class="keys">${k.split(" ").map(x => `<kbd class="kk">${x}</kbd>`).join("")}</span><span>${d}</span></div>`;
+  openSheet(`<h2>Keyboard shortcuts</h2>
+    <div class="kgroup"><div class="kh">Add something</div>
+      ${row("⌘ E", "New expense")}${row("⌘ I", "New income")}${row("⌘ B", "New bill")}${row("⌘ S", "Move money to savings")}</div>
+    <div class="kgroup"><div class="kh">In the add form</div>
+      ${row("Return", "Add it")}${row("⌘ Return", "Add it (works from any field)")}${row("Tab", "Next field")}${row("⌘ E", "Switch type (also ⌘I, ⌘B, ⌘S) and keep the amount")}${row("Esc", "Cancel and close")}</div>
+    <div class="kgroup"><div class="kh">Calculator (iPad layout)</div>
+      ${row("0–9 .", "Type numbers")}${row("+ - * /", "Add, subtract, multiply, divide")}${row("%", "Percent (100 − 25% = 75)")}${row("Return", "Equals — saves the line to the tape")}${row("Delete", "Erase the last character")}${row("Esc", "Clear")}${row("⌘ V", "Paste a number from the clipboard")}</div>
+    <div class="kgroup"><div class="kh">Anywhere</div>
+      ${row("⌘ /", "Show this list")}${row("Esc", "Close any pop-up")}</div>
+    <div class="kgroup"><div class="kh">Tips</div>
+      <ul class="tips">
+        <li>If a shortcut doesn't respond right after opening, tap once anywhere in the app first.</li>
+        <li>The cursor starts in Amount — type the number, Tab to the description, Return to add. No mouse or touch needed.</li>
+        <li>On iPad, hold down ⌘ to see the system's own shortcuts. If one of these doesn't respond, iPadOS is probably using it for something else.</li>
+        <li>The shortcut letters also show on the type buttons in the add form when you're on a wide screen.</li>
+      </ul></div>
+    <div class="btns"><button type="button" class="btn" data-close>Close</button></div>`);
+}
+
+/* ---------- calculator with tape ---------- */
+const C = { expr: "", last: null };   // expr is a token string like "12+7×2"
+function loadTape(){ try { return JSON.parse(lsGet("cf_tape") || "[]"); } catch(e){ return []; } }
+let TAPE = loadTape();
+const OPS = "+−×÷";
+function calcEval(expr){
+  // tokenize, apply % as /100 to the number before it, then × ÷ before + −
+  const toks = []; let num = "";
+  for (const ch of expr) {
+    if ("0123456789.".includes(ch)) num += ch;
+    else if (ch === "%") { if (num) { toks.push({pct: parseFloat(num)}); num = "pct"; } }
+    else if (OPS.includes(ch)) { if (num === "" && (ch === "−") && (!toks.length || OPS.includes(toks[toks.length-1]))) { num = "-"; continue; } if (num !== "" && num !== "pct") toks.push(parseFloat(num)); num = ""; toks.push(ch); }
+  }
+  if (num !== "" && num !== "-" && num !== "pct") toks.push(parseFloat(num));
+  while (toks.length && OPS.includes(toks[toks.length-1])) toks.pop();
+  if (!toks.length) return null;
+  // percent works like the iPhone calculator: 100 − 25% = 75 (25% of 100), 80 × 10% = 8
+  const val = t => typeof t === "object" ? t.pct / 100 : t;
+  const st = [val(toks[0])];
+  for (let i = 1; i < toks.length; i += 2) {
+    const op = toks[i], raw = toks[i+1];
+    if (raw === undefined) break;
+    let v = val(raw);
+    if (typeof raw === "object" && (op === "+" || op === "−")) v = st.reduce((a, b) => a + b, 0) * raw.pct / 100;
+    if (isNaN(v)) break;
+    if (op === "×") st[st.length-1] *= v;
+    else if (op === "÷") st[st.length-1] = v === 0 ? NaN : st[st.length-1] / v;
+    else st.push(op === "+" ? v : -v);
+  }
+  const r = st.reduce((a, b) => a + b, 0);
+  return isFinite(r) ? Math.round(r * 1e8) / 1e8 : NaN;
+}
+const fmtNum = n => n == null ? "0" : isNaN(n) ? "Error" : n.toLocaleString("en-US", {maximumFractionDigits: 8});
+const prettyExpr = e => e.replace(/([+−×÷])/g, " $1 ");
+function calcPress(k){
+  if (C.done && (/^\d$/.test(k) || k === ".")) C.expr = "";
+  C.done = false;
+  const lastCh = C.expr.slice(-1);
+  if (k === "C") { C.expr = ""; C.last = null; }
+  else if (k === "⌫") { C.expr = C.expr.slice(0, -1); }
+  else if (k === "=") {
+    const r = calcEval(C.expr);
+    if (r != null && C.expr && /[+−×÷%]/.test(C.expr.replace(/^−/, ""))) {
+      TAPE.unshift({e: C.expr, r, t: Date.now()}); TAPE = TAPE.slice(0, 60); lsSet("cf_tape", JSON.stringify(TAPE));
+    }
+    C.lastExpr = C.expr; C.last = r; C.expr = r == null || isNaN(r) ? "" : String(r).replace("-", "−"); C.done = true; renderCalc(); return;
+  }
+  else if (OPS.includes(k)) {
+    if (!C.expr && k !== "−") C.expr = C.last != null && !isNaN(C.last) ? String(C.last).replace("-", "−") : "0";
+    if (OPS.includes(lastCh)) C.expr = C.expr.slice(0, -1);
+    C.expr += k;
+  }
+  else if (k === "±") {
+    const m = C.expr.match(/(−?)([\d.]+%?)$/);
+    if (m) { const start = C.expr.length - m[0].length; const before = C.expr.slice(0, start);
+      const unary = m[1] && (start === 0 || OPS.includes(before.slice(-1)));
+      C.expr = unary ? before + m[2] : before + (m[1] ? m[0] : "−" + m[2]); }
+  }
+  else if (k === "%") { if (/[\d]$/.test(C.expr)) C.expr += "%"; }
+  else if (k === ".") { const m = C.expr.match(/[\d.]*$/)[0]; if (!m.includes(".")) C.expr += (m ? "." : "0."); }
+  else if (/^\d$/.test(k)) { if (lastCh === "%") C.expr += "×"; C.expr += k; }
+  renderCalc();
+}
+function calcValue(){ const r = calcEval(C.expr); return r == null ? (C.last ?? 0) : r; }
+function renderCalc(){
+  const el = $("#calc"); if (!el) return;
+  const live = calcEval(C.expr);
+  const shown = C.expr ? (live == null ? 0 : live) : (C.last ?? 0);
+  el.innerHTML = `<div class="card calc">
+    <div class="cdisp"><div class="cclip"><button id="calcCopy">⧉ Copy</button><button id="calcPaste">📋 Paste</button></div>
+      <div class="cpaste" id="cpasteBox" hidden><input id="cpasteIn" inputmode="decimal" placeholder="Press and hold here, then tap Paste" autocomplete="off"><button id="cpasteX" aria-label="Cancel">✕</button></div>
+      <div class="cexpr">${C.done && C.lastExpr ? esc(prettyExpr(C.lastExpr)) + " =" : (esc(prettyExpr(C.expr)) || "&nbsp;")}</div><div class="cval">${fmtNum(shown)}</div></div>
+    <div class="ckeys">
+      ${["C","±","%","÷","7","8","9","×","4","5","6","−","1","2","3","+"].map(k => `<button data-ck="${k}" class="${OPS.includes(k) ? "op" : ["C","±","%"].includes(k) ? "fn" : ""}">${k}</button>`).join("")}
+      <button data-ck="0" class="zero">0</button><button data-ck=".">.</button><button data-ck="=" class="eq">=</button>
+    </div>
+    <div class="cact"><button data-cuse="expense">→ Expense</button><button data-cuse="bill">→ Bill</button><button data-cuse="income">→ Income</button><button data-ck="⌫">⌫</button></div>
+    <div class="tape"><div class="tapehead"><span>Tape</span>${TAPE.length ? `<button id="tapeClear">Clear tape</button>` : ""}</div>
+      <div class="tapelist">${TAPE.length ? TAPE.map((t, i) => `<button class="tline" data-tape="${i}"><span>${esc(prettyExpr(t.e))} =</span><b>${fmtNum(t.r)}</b></button>`).join("") : `<div class="tempty">Calculations you finish with = show up here. Tap one to use its answer again.</div>`}</div></div>
+  </div>`;
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.dataset.ck) { calcPress(b.dataset.ck); return; }
+  if (b.dataset.tape != null) { const t = TAPE[+b.dataset.tape]; if (t) { C.expr = String(t.r).replace("-", "−"); C.last = t.r; C.done = true; renderCalc(); } return; }
+  if (b.id === "tapeClear") { if (!b.classList.contains("armed")) { b.classList.add("armed"); b.textContent = "Tap again to clear"; return; } TAPE = []; lsSet("cf_tape", "[]"); renderCalc(); return; }
+  if (b.dataset.cuse) {
+    const v = Math.abs(calcValue()); if (!S.month || !v || isNaN(v)) { toast("Nothing to add yet"); return; }
+    addSheet(b.dataset.cuse); const a = $("#fAmt"); if (a) a.value = v.toFixed(2);
+  }
+});
+// Magic Keyboard: digits and operators go to the calculator when no form is open and nothing is being typed into
+const calcVisible = () => { const el = $("#calc"); return el && el.offsetParent !== null; };
+document.addEventListener("keydown", e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || !calcVisible() || !$("#sheet").hidden) return;
+  const ae = document.activeElement; if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA" || ae.isContentEditable)) return;
+  const map = {"+":"+","-":"−","*":"×","x":"×","X":"×","/":"÷","Enter":"=","=":"=","Backspace":"⌫","Escape":"C","c":"C","C":"C","%":"%",".":".",",":"."};
+  const k = /^\d$/.test(e.key) ? e.key : map[e.key];
+  if (!k) return;
+  e.preventDefault(); calcPress(k);
+});
+
+/* calculator copy / paste */
+function pasteNumber(text){
+  const m = String(text || "").replace(/[$,\s]/g, "").match(/-?\d*\.?\d+/);
+  if (!m) { toast("No number found to paste"); return false; }
+  const n = m[0].replace("-", "−"), lastCh = C.expr.slice(-1);
+  if (C.done || !C.expr) C.expr = n;
+  else if (OPS.includes(lastCh)) C.expr += n;                                     // after an operator: append
+  else C.expr = C.expr.replace(/−?[\d.]+%?$/, "") + n;                          // replace the number being typed
+  C.done = false; renderCalc(); toast(`Pasted ${m[0]}`); return true;
+}
+async function copyText(t){
+  try { await navigator.clipboard.writeText(t); return true; } catch(e) {}
+  try { const ta = document.createElement("textarea"); ta.value = t; ta.style.position = "fixed"; ta.style.opacity = "0"; document.body.appendChild(ta); ta.select(); const ok = document.execCommand("copy"); ta.remove(); return ok; } catch(e) { return false; }
+}
+document.addEventListener("click", async e => {
+  const b = e.target.closest("button"); if (!b) return;
+  if (b.id === "calcCopy") {
+    const v = calcValue(); const t = isNaN(v) ? "" : String(Math.round(v * 100) / 100 === v ? v : Math.round(v * 1e8) / 1e8);
+    toast(t && await copyText(t) ? `Copied ${t}` : "Couldn't copy — try selecting the number instead", 2500); return;
+  }
+  if (b.id === "calcPaste") {
+    try { const t = await navigator.clipboard.readText(); if (t && pasteNumber(t)) return; } catch(err) {}   // usually blocked here; fall back to the paste box
+    const box = $("#cpasteBox"); box.hidden = false; const i = $("#cpasteIn"); i.value = ""; i.focus(); return;
+  }
+  if (b.id === "cpasteX") { $("#cpasteBox").hidden = true; return; }
+});
+document.addEventListener("input", e => {
+  if (e.target.id !== "cpasteIn") return;
+  const v = e.target.value; if (!v) return;
+  if (pasteNumber(v)) { /* renderCalc rebuilt the box, so it closes itself */ }
+});
+// ⌘V anywhere (outside a text field) pastes into the calculator on the iPad layout
+document.addEventListener("paste", e => {
+  if (!calcVisible() || !$("#sheet").hidden) return;
+  const ae = document.activeElement; if (ae && (ae.tagName === "INPUT" || ae.tagName === "TEXTAREA") && ae.id !== "cpasteIn") return;
+  const t = e.clipboardData && e.clipboardData.getData("text"); if (!t) return;
+  e.preventDefault(); pasteNumber(t);
+});
+
+/* ---------- back to top ---------- */
+const topBtn = () => { const b = $("#btnTop"); if (b) b.hidden = window.scrollY < 260; };
+window.addEventListener("scroll", topBtn, {passive:true});
+document.addEventListener("click", e => { if (e.target.closest("h1")) window.scrollTo({top:0, behavior:"smooth"}); });
+
+/* ---------- boot ---------- */
+render();
+(async () => {
+  mcp = CFG.url && CFG.key ? {} : null;
+  if (!mcp) { S.loading = false; render(); return; }
+  startLive();
+})();
+async function startLive(){
+  await loadAll();
+  flushQueue();
+  // live updates: re-read the sheet every minute while visible, and when coming back to the app
+  const quiet = () => mcp && !S.busy && !S.loading && $("#sheet").hidden && document.visibilityState === "visible" && navigator.onLine;
+  setInterval(() => { if (!quiet()) return; if (S.queue.length) flushQueue(); else loadAll(); }, 60000);
+  document.addEventListener("visibilitychange", () => { if (quiet() && (!S.loadedAt || Date.now() - S.loadedAt > 20000)) { S.queue.length ? flushQueue() : loadAll(); } });
+  window.addEventListener("online", () => { S.offline = false; renderQueue(); setTimeout(() => { flushQueue(); if (!S.queue.length) loadAll(); }, 1500); });
+  window.addEventListener("offline", () => { S.offline = true; render(); });
+}
+// offline support: keep the app itself saved on the device
+if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+</script>
+</body>
+</html>
