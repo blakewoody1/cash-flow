@@ -261,6 +261,14 @@ kbd{display:none;font:600 11px -apple-system,sans-serif;color:var(--muted);margi
 .repeatbtn{width:100%;margin:2px 0 4px;color:var(--accent);font-size:15px;padding:11px}
 .bankbtn{padding:7px 12px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:14px;font-weight:700;color:var(--ink);white-space:nowrap}
 .bankbtn:active{transform:scale(.96)}
+.acctbtn{font:inherit;font-weight:700;color:inherit;display:inline-flex;align-items:center;gap:6px;padding:2px 4px;margin-left:-4px;border-radius:10px}
+.acctbtn:active{background:var(--line)}
+.acctbtn .caret{font-size:.6em;color:var(--muted)}
+.acctrow{display:flex;gap:6px;margin-top:6px}
+.acctrow .aName{flex:0 0 32%}
+.acctrow input{padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg);font-size:15px;min-width:0;flex:1}
+.acctchoice.cur{border-color:var(--accent);background:var(--accent-soft)}
+.choice.acctchoice:first-child:not(.cur){border-color:var(--line);background:var(--bg)}
 #liveDot{color:var(--accent);font-size:12px}
 .foot{font-size:12px;color:var(--muted);text-align:center;margin-top:18px}
 
@@ -379,7 +387,7 @@ kbd{display:none;font:600 11px -apple-system,sans-serif;color:var(--muted);margi
 <body>
 <div class="wrap">
   <div class="toprow">
-    <h1>Cash Flow</h1>
+    <h1><button class="acctbtn" id="btnAcct" aria-label="Switch account"><span id="acctName">Cash Flow</span> <span class="caret">▾</span></button></h1>
     <div style="display:flex;gap:6px;align-items:center">
       <button class="bankbtn" id="btnBank" aria-label="Open your bank app">🏦 Bank</button>
       <button class="icon" id="btnRefresh" aria-label="Refresh">↻</button>
@@ -409,6 +417,13 @@ kbd{display:none;font:600 11px -apple-system,sans-serif;color:var(--muted);margi
 <script>
 const SERVER = "Google Sheets";
 const DEFAULT_ID = "14yvG4FmByEp2Te4gIPQ5FPQ2n6hwSN-quB7b95WRQ1U";
+// Accounts: one Google Sheet each (same layout). Each must also be listed in SHEETS in the Apps Script.
+const DEFAULT_ACCOUNTS = [{name:"Cash Flow", id:DEFAULT_ID}, {name:"WNC", id:"109ZOrysstYv1adeMnFclmQD_dmK92RVXOx0kcpql18E"}];
+function getAccounts(){ try { const a = JSON.parse(lsGet("cf_accounts") || "null"); if (Array.isArray(a) && a.length) return a; } catch(e){} return DEFAULT_ACCOUNTS; }
+function saveAccounts(a){ lsSet("cf_accounts", JSON.stringify(a)); }
+const acctName = id => (getAccounts().find(a => a.id === id) || {}).name || "Account";
+// settings that belong to one account (main account keeps the original keys)
+const akey = (base, id) => ((id || S.id) === DEFAULT_ID ? base : base + ":" + (id || S.id));
 const MON = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
 const $ = s => document.querySelector(s);
@@ -417,7 +432,7 @@ function lsGet(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 
 let mcp = null;
-const S = { id: lsGet("cf_sheet") || DEFAULT_ID, tabs: [], month: null, spend: {items:[],lastRow:1}, save: {items:[],lastRow:1},
+const S = { id: (getAccounts().find(a => a.id === lsGet("cf_acct")) || getAccounts()[0]).id, tabs: [], month: null, spend: {items:[],lastRow:1}, save: {items:[],lastRow:1},
   view: "timeline", loading: true, err: null, busy: false };
 
 /* ---------- dates & money ---------- */
@@ -494,6 +509,7 @@ function errInfo(e){
   const map = {
     needs_reauth: ["Wrong key","The key in Settings doesn't match the KEY in your Apps Script. Fix it in Settings (⚙︎)."],
     not_setup: ["Connect your sheet","Tap ⚙︎ Settings and add your Apps Script web app link and key."],
+    script_outdated: ["Apps Script update needed", e && e.message],
     bad_response: ["Apps Script link isn't right","Check Settings: it should be the Web app URL ending in /exec, deployed with access set to Anyone."],
     offline: ["No signal","This part hasn't been loaded on this device yet. It will load once you're back online."],
     server_unavailable: ["Couldn't reach your sheet","It may be a brief hiccup or no signal. Tap Try again."],
@@ -510,6 +526,9 @@ const tabKey = t => { const m = t.match(MONTH_RE); return m ? (+m[2])*12 + MON.i
 async function loadTabs(){
   const p = await call("get_spreadsheet", {spreadsheetId:S.id, fields:["properties.title","sheets.properties.title","sheets.properties.sheetId"]});
   S.title = p.properties && p.properties.title;
+  // Safety: the Apps Script must confirm it opened this account's sheet (older scripts always open Cash Flow)
+  const got = p.properties && p.properties.spreadsheetId;
+  if (S.id !== DEFAULT_ID && got !== S.id) { S.tabs = []; throw {code:"script_outdated", message:`Your Apps Script needs the update that lets it open “${acctName(S.id)}”. Paste the new Code.gs and redeploy, then tap Try again.`}; }
   S.tabs = (p.sheets||[]).map(s => s.properties).filter(t => MONTH_RE.test(t.title)).sort((a,b) => tabKey(a.title) - tabKey(b.title));
   if (!S.tabs.length) throw {code:"layout", message:"No month tabs (like “Nov 2026”) were found in this sheet."};
 }
@@ -667,6 +686,36 @@ function unclearedHTML(){
   return html + `<p class="hint" style="text-align:center">Tap an item, then “Mark as cleared” once it shows up in your bank. It moves off this list and into your cleared balance.</p>`;
 }
 
+/* ---------- accounts ---------- */
+// Run a change against another account's sheet (used when syncing saved changes)
+async function withAccount(sid, fn){
+  if (sid === S.id) return fn();
+  const prev = {id: S.id, tabs: S.tabs, title: S.title};
+  try { S.id = sid; S.tabs = []; await loadTabs(); return await fn(); }
+  finally { S.id = prev.id; S.tabs = prev.tabs; S.title = prev.title; }
+}
+function renderAcct(){
+  const el = $("#acctName"); if (el) el.textContent = acctName(S.id);
+  document.title = acctName(S.id) + " · Cash Flow";
+}
+function switchAccount(id){
+  if (id === S.id || S.busy) { closeSheet(); return; }
+  S.id = id; lsSet("cf_acct", id);
+  S.tabs = []; S.month = null; S.periodMonths = null; S.spend = {items:[], lastRow:1}; S.save = {items:[], lastRow:1};
+  S.tlMonth = null; S.snapToday = true; S.err = null; S.title = "";
+  closeSheet(); renderAcct(); render();
+  if (mcp) loadAll().then(() => toast("Switched to " + acctName(id)));
+}
+function acctRowHTML(a, i){
+  return `<div class="acctrow"><input class="aName" value="${esc(a.name)}" placeholder="Name"><input class="aLink" value="${esc(a.id)}" placeholder="Sheet link or ID" autocapitalize="off" autocorrect="off" spellcheck="false">${i > 0 ? `<button type="button" class="qx" data-delacct="${i}" aria-label="Remove">✕</button>` : ""}</div>`;
+}
+function acctSheet(){
+  const accts = getAccounts();
+  openSheet(`<h2>Accounts</h2>
+    <div class="choices">${accts.map((a, i) => `<button class="choice acctchoice ${a.id === S.id ? "cur" : ""}" data-acct="${esc(a.id)}"><b>${esc(a.name)}${a.id === S.id ? " ✓" : ""}</b><small>${i < 9 ? `⌘${i + 1} · ` : ""}${a.id === S.id ? "Showing now" : "Tap to switch"}</small></button>`).join("")}</div>
+    <div class="btns"><button type="button" class="btn" id="btnManageAccts">Manage accounts</button><button type="button" class="btn" data-close>Close</button></div>`);
+}
+
 /* ---------- offline queue ---------- */
 // Each change is an "op". Online: run it now. Offline (or the send fails): keep it on this phone and send it later.
 function loadQueue(){ try { return JSON.parse(lsGet("cf_queue") || "[]"); } catch(e){ return []; } }
@@ -744,7 +793,7 @@ async function execOp(op){
   }
 }
 function enqueue(op, maybeSent){
-  S.queue.push({...op, qid: Date.now() + "-" + Math.random().toString(36).slice(2,7), maybeSent: !!maybeSent, at: Date.now()});
+  S.queue.push({sid: S.id, ...op, qid: Date.now() + "-" + Math.random().toString(36).slice(2,7), maybeSent: !!maybeSent, at: Date.now()});
   saveQueue();
 }
 async function submitOp(op, label, done){
@@ -774,7 +823,7 @@ async function flushQueue(manual){
   renderQueue();
   while (S.queue.length){
     const op = S.queue[0];
-    try { await execOp(op); S.queue.shift(); sent++; saveQueue(); }
+    try { await withAccount(op.sid || DEFAULT_ID, () => execOp(op)); S.queue.shift(); sent++; saveQueue(); }
     catch(e){
       if (!navigator.onLine || NETWORKISH.has(e && e.code)) { op.maybeSent = true; saveQueue(); break; }
       stuck = {op, e}; break;   // a real problem (e.g. row no longer exists): stop and let the user decide
@@ -787,6 +836,10 @@ async function flushQueue(manual){
   renderQueue();
 }
 function opLabel(op){
+  const pre = op.sid && op.sid !== S.id ? acctName(op.sid) + " · " : "";
+  return pre + opLabel1(op);
+}
+function opLabel1(op){
   const d = short(op.serial || todaySerial());
   if (op.type === "log") return `${op.tab === "Spending Log" ? "Expense" : "Savings"} · ${op.text} · ${money(op.amt)} · ${d}${op.cleared ? " · cleared" : ""}`;
   if (op.type === "item") return `${op.kind === "income" ? "Income" : "Bill"} · ${op.desc} · ${money(op.amt)} · ${d}`;
@@ -914,8 +967,8 @@ function mergedRows(){
   (S.periodMonths || []).forEach((m, mi) => m.rows.forEach(r => { if (r.kind === "blank" || r.serial == null) return; if (r.kind === "start" && mi > 0) return; rows.push(r); }));
   return rows;
 }
-const getGoal = () => { const v = parseFloat(lsGet("cf_goal")); return isNaN(v) ? 50 : v; };
-const getCushion = () => { const v = parseFloat(lsGet("cf_cushion")); return isNaN(v) ? 100 : v; };
+const getGoal = () => { const v = parseFloat(lsGet(akey("cf_goal"))); return isNaN(v) ? 50 : v; };
+const getCushion = () => { const v = parseFloat(lsGet(akey("cf_cushion"))); return isNaN(v) ? 100 : v; };
 function planStats(){
   const rows = mergedRows(); if (!rows.length) return null;
   const T = todaySerial(), p = parts(T), end = toSerial(p.y, p.m + 2, 0);
@@ -1275,7 +1328,7 @@ function timelineHTML(){
   // …plus each Spending Log expense that this month tab counts, on its own date
   S.spend.items.filter(it => it.amt && tabForSerial(it.serial) === m.title).forEach((it, i) => entries.push({s:it.serial, o:1, i, it}));
   // changes saved on this device but not synced yet show up right away, marked as waiting
-  (S.queue || []).forEach((op, i) => {
+  (S.queue || []).filter(op => (op.sid || DEFAULT_ID) === S.id).forEach((op, i) => {
     if (op.type === "log" && op.tab === "Spending Log" && tabForSerial(op.serial) === m.title) entries.push({s:op.serial, o:2, i, pend:{desc:op.text, amt:-op.amt, kind:"spend"}});
     if (op.type === "item" && tabForSerial(op.serial) === m.title) entries.push({s:op.serial, o:2, i, pend:{desc:op.desc, amt: op.kind === "income" ? op.amt : -op.amt, kind:op.kind}});
   });
@@ -1484,8 +1537,12 @@ function settingsSheet(){
       <label class="field"><span>Apps Script web app link</span><input id="fApi" value="${esc(CFG.url)}" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
       <label class="field"><span>Key (the KEY in your Apps Script)</span><input id="fKey" type="password" value="${esc(CFG.key)}" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
       <label class="radio" style="margin-top:-4px"><input type="checkbox" id="fShowKey"><span>Show key</span></label>
-      <label class="field"><span>Bank shortcut name (for the 🏦 Bank button)</span><input id="fBank" value="${esc(lsGet("cf_bank") || "")}" placeholder="Exactly as it's named in Shortcuts" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
-      <label class="field"><span>Google Sheet link (for “Open sheet”)</span><input id="fId" value="${esc(S.id)}" autocapitalize="off"></label>
+      <label class="field"><span>Bank shortcut name for ${esc(acctName(S.id))} (🏦 Bank button)</span><input id="fBank" value="${esc(lsGet(akey("cf_bank")) || "")}" placeholder="Exactly as it's named in Shortcuts" autocapitalize="off" autocorrect="off" spellcheck="false"></label>
+      <div class="field"><span>Accounts (name and Google Sheet link)</span>
+        <div id="acctRows">${getAccounts().map((a, i) => acctRowHTML(a, i)).join("")}</div>
+        <button type="button" class="qsync" id="btnAddAcct" style="margin-top:6px;background:var(--bg);color:var(--accent)">+ Add account</button>
+        <p class="hint" style="margin-top:6px">A new account needs its own sheet with the same layout, and its sheet ID added to SHEETS in your Apps Script.</p>
+      </div>
       <p class="hint">Connected to: “${esc(S.title || "—")}”. The key is stored only on this device.</p>
       <p class="hint"><button type="button" class="qsync" id="btnClearCache" style="background:var(--bg);color:var(--muted)">Clear saved offline data</button></p>
       <p class="hint"><a href="https://docs.google.com/spreadsheets/d/${esc(S.id)}/edit" target="_blank" rel="noopener">Open this sheet in Google Sheets</a></p>
@@ -1499,10 +1556,15 @@ document.addEventListener("click", e => {
   if (t.id === "scrim" || t.hasAttribute("data-close")) return closeSheet();
   if (t.id === "fab") return S.month && addSheet();
   if (t.id === "btnRefresh") { if (!S.busy && mcp) { S.tabs = []; loadAll(); } return; }
+  if (t.id === "btnAcct") return acctSheet();
+  if (t.dataset.acct) return switchAccount(t.dataset.acct);
+  if (t.id === "btnManageAccts") return settingsSheet();
+  if (t.id === "btnAddAcct") { const box = $("#acctRows"); box.insertAdjacentHTML("beforeend", acctRowHTML({name:"", id:""}, box.children.length)); box.lastElementChild.querySelector(".aName").focus(); return; }
+  if (t.dataset.delacct) { t.closest(".acctrow").remove(); return; }
   if (t.id === "btnSettings" || t.id === "btnSettings2") return settingsSheet();
   if (t.id === "btnBank") {
     // runs your Shortcut by name; the Shortcut then opens the bank app
-    const name = lsGet("cf_bank");
+    const name = lsGet(akey("cf_bank"));
     if (!name) { settingsSheet(); setTimeout(() => { const f = $("#fBank"); if (f) f.focus(); }, 80); toast("Type your bank Shortcut's name, then Save", 3500); return; }
     window.location.href = "shortcuts://run-shortcut?name=" + encodeURIComponent(name);
     return;
@@ -1570,14 +1632,17 @@ document.addEventListener("submit", e => {
   const f = e.target;
   const amtRaw = $("#fAmt") ? parseMoney($("#fAmt").value) : 0;
   if (f.id === "planForm") {
-    lsSet("cf_goal", String(Math.max(0, parseMoney($("#fGoal").value))));
-    lsSet("cf_cushion", String(Math.max(0, parseMoney($("#fCushion").value))));
+    lsSet(akey("cf_goal"), String(Math.max(0, parseMoney($("#fGoal").value))));
+    lsSet(akey("cf_cushion"), String(Math.max(0, parseMoney($("#fCushion").value))));
     closeSheet(); render(); toast("Allowance updated"); return;
   }
   if (f.id === "setForm") {
-    const v = $("#fId").value.trim(); const m = v.match(/\/d\/([a-zA-Z0-9_-]+)/); const id = m ? m[1] : v;
-    if (id) { S.id = id; lsSet("cf_sheet", id); }
-    lsSet("cf_bank", $("#fBank").value.trim());
+    lsSet(akey("cf_bank"), $("#fBank").value.trim());
+    const rows = [...document.querySelectorAll(".acctrow")].map(r => {
+      const name = r.querySelector(".aName").value.trim(), v = r.querySelector(".aLink").value.trim();
+      const m = v.match(/\/d\/([a-zA-Z0-9_-]+)/); return {name, id: m ? m[1] : v};
+    }).filter(a => a.name && a.id);
+    if (rows.length) { saveAccounts(rows); if (!rows.some(a => a.id === S.id)) { switchAccount(rows[0].id); } else renderAcct(); }
     const url = $("#fApi").value.trim(), key = $("#fKey").value.trim();
     const changed = url !== CFG.url || key !== CFG.key;
     CFG.url = url; CFG.key = key; lsSet("cf_api", url); lsSet("cf_key", key);
@@ -1629,6 +1694,7 @@ document.addEventListener("keydown", e => {
     const f = $("#sheet:not([hidden]) form"); if (f) { e.preventDefault(); f.requestSubmit(); } return;
   }
   if ((e.metaKey || e.ctrlKey) && (k === "/" || k === "?")) { e.preventDefault(); keysSheet(); return; }
+  if ((e.metaKey || e.ctrlKey) && /^[1-9]$/.test(k)) { const a = getAccounts()[+k - 1]; if (a) { e.preventDefault(); switchAccount(a.id); } return; }
   if (!(e.metaKey || e.ctrlKey) || e.altKey || e.shiftKey || !KEYMAP[k]) return;
   e.preventDefault(); e.stopPropagation();
   if (!S.month || !mcp) return;
@@ -1647,7 +1713,7 @@ function keysSheet(){
     <div class="kgroup"><div class="kh">Calculator (iPad layout)</div>
       ${row("0–9 .", "Type numbers")}${row("+ - * /", "Add, subtract, multiply, divide")}${row("%", "Percent (100 − 25% = 75)")}${row("Return", "Equals — saves the line to the tape")}${row("Delete", "Erase the last character")}${row("Esc", "Clear")}${row("⌘ V", "Paste a number from the clipboard")}</div>
     <div class="kgroup"><div class="kh">Anywhere</div>
-      ${row("⌘ /", "Show this list")}${row("Esc", "Close any pop-up")}</div>
+      ${row("⌘ /", "Show this list")}${row("⌘ 1 / 2", "Switch account")}${row("Esc", "Close any pop-up")}</div>
     <div class="kgroup"><div class="kh">Tips</div>
       <ul class="tips">
         <li>If a shortcut doesn't respond right after opening, tap once anywhere in the app first.</li>
@@ -1802,9 +1868,10 @@ document.addEventListener("paste", e => {
 /* ---------- back to top ---------- */
 const topBtn = () => { const b = $("#btnTop"); if (b) b.hidden = window.scrollY < 260; };
 window.addEventListener("scroll", topBtn, {passive:true});
-document.addEventListener("click", e => { if (e.target.closest("h1")) window.scrollTo({top:0, behavior:"smooth"}); });
+document.addEventListener("click", e => { if (e.target.closest("h1") && !e.target.closest("#btnAcct")) window.scrollTo({top:0, behavior:"smooth"}); });
 
 /* ---------- boot ---------- */
+renderAcct();
 render();
 (async () => {
   mcp = CFG.url && CFG.key ? {} : null;
