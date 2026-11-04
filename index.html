@@ -1822,7 +1822,23 @@ async function startLive(){
   window.addEventListener("offline", () => { S.offline = true; render(); });
 }
 // offline support: keep the app itself saved on the device
-if ("serviceWorker" in navigator) window.addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+if ("serviceWorker" in navigator) {
+  const hadController = !!navigator.serviceWorker.controller;
+  window.addEventListener("load", () => navigator.serviceWorker.register("sw.js", {updateViaCache: "none"}).then(reg => {
+    reg.update().catch(() => {});
+    // also look for a new version whenever the app comes back to the screen
+    document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && navigator.onLine) reg.update().catch(() => {}); });
+  }).catch(() => {}));
+  // a new version just took over: reload once so it shows right away (not if a form is open)
+  let reloaded = false;
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    if (!hadController || reloaded) return;
+    reloaded = true;
+    const go = () => location.reload();
+    if ($("#sheet").hidden) { toast("Updating to the newest version…", 0); setTimeout(go, 600); }
+    else toast("A new version is ready — it loads next time you open the app", 4000);
+  });
+}
 </script>
 </body>
 </html>
