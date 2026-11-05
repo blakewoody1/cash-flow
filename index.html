@@ -544,6 +544,25 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
 
 /* calculator operator keys: grey like the rest */
 .ckeys .op{background:color-mix(in srgb,var(--ink) 13%,var(--card));color:var(--ink)}
+
+/* green only for income, paychecks, cleared marks, Today and the + button; everything else grey */
+:root{--green:#1d6b4c;--green-ink:#ffffff;--accent:#2b2b2e;--accent-ink:#ffffff;--accent-soft:#e3e3e6;--chip-on:rgba(0,0,0,.09)}
+@media (prefers-color-scheme:dark){
+  :root{--green:#4cc08f;--green-ink:#0b0d0c;--accent:#e9e9ec;--accent-ink:#111113;--accent-soft:#2e2e32;--chip-on:rgba(255,255,255,.15)}
+}
+#tabs button.on{color:var(--ink)}
+.fab{background:var(--green);color:var(--green-ink)}
+.today{color:var(--green)} .today::after{background:var(--green)}
+.day.isToday{color:var(--green)}
+.isClr .chk::before{background:var(--green);border-color:var(--green);color:var(--green-ink)}
+.cbadge{background:var(--green);color:var(--green-ink)}
+a{color:var(--ink)}
+/* "Live from … · Updated … · Open sheet" sits under the balance, not over the timeline */
+.foot,#foot{position:static!important;right:auto;bottom:auto;display:flex;justify-content:center;align-items:center;flex-wrap:wrap;gap:6px;
+  margin:4px 0 10px;padding:0;font-size:12px;color:var(--muted);text-align:center;white-space:normal}
+.foot > div{display:inline-flex}
+.foot .kbbtn{margin-top:0;width:26px;height:26px;font-size:14px;border-radius:8px}
+@media (min-width: 900px){ #foot{flex:none;margin:2px 0 8px} #calc{margin-top:0} }
 </style>
 </head>
 <body>
@@ -558,7 +577,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
   </div>
   <div class="months" id="months"></div>
   <div id="queue"></div>
-  <div id="leftcol"><div id="hero"></div><div id="calc"></div></div>
+  <div id="leftcol"><div id="hero"></div><div class="foot" id="foot"></div><div id="calc"></div></div>
   <div id="periods"></div>
   <div class="seg" id="tabs">
     <button data-tab="timeline" class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Timeline</span></button>
@@ -568,7 +587,6 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
     <button data-tab="summaries"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-9M12 20V5M19 20v-7"/></svg><span>Summaries</span></button>
   </div>
   <div id="view"></div>
-  <div class="foot" id="foot"></div>
 </div>
 <button class="fab" id="fab" aria-label="Add"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
 <button class="totop" id="btnTop" aria-label="Back to top" hidden>↑ Top</button>
