@@ -714,9 +714,34 @@ function errInfo(e){
 const MONTH_RE = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})$/;
 const tabKey = t => { const m = t.match(MONTH_RE); return m ? (+m[2])*12 + MON.indexOf(m[1]) : null; };
 
+// the exact requests each read makes (shared with the one-trip batch read below so they use the same saved copies)
+const REQ = {
+  tabs: () => ["get_spreadsheet", {spreadsheetId:S.id, fields:["properties.title","sheets.properties.title","sheets.properties.sheetId"]}],
+  month: title => ["get_spreadsheet", {spreadsheetId:S.id, includeGridData:true, ranges:[`${qt(title)}!A1:I160`],
+    fields:["sheets.data.rowData.values.userEnteredValue","sheets.data.rowData.values.effectiveValue"]}],
+  log: tab => ["get_values", {spreadsheetId:S.id, range:`${qt(tab)}!A2:E20000`}]
+};
+// the Apps Script says whether it can answer several reads in one trip (newer versions list "batch")
+let batchOK = false;
+// One trip to the Apps Script for many reads; saves each answer like a normal read. Returns false if it couldn't.
+async function prefetch(reqs){
+  if (!batchOK || !navigator.onLine) return false;   // older Apps Script: use one request per read
+  try {
+    const r = await apiCall("batch", {calls: reqs.map(([tool, input]) => ({tool, input}))});
+    const res = (r && r.results) || [];
+    if (res.length !== reqs.length || res.some(x => !x || x.error)) return false;
+    reqs.forEach(([tool, input], i) => cacheSet("cf_c:" + tool + ":" + JSON.stringify(input), res[i].result));
+    return true;
+  } catch(e) {
+    if (e.code === "bad_request" || e.code === "tool_error") batchOK = false;
+    else if (e.code === "needs_reauth") throw e;
+    return false;
+  }
+}
 async function loadTabs(cacheOnly){
-  const p = await call("get_spreadsheet", {spreadsheetId:S.id, fields:["properties.title","sheets.properties.title","sheets.properties.sheetId"]}, cacheOnly);
+  const p = await call(...REQ.tabs(), cacheOnly);
   S.title = p.properties && p.properties.title;
+  batchOK = !!(p.properties && Array.isArray(p.properties.features) && p.properties.features.indexOf("batch") >= 0);
   // Safety: the Apps Script must confirm it opened this account's sheet (older scripts always open Cash Flow)
   const got = p.properties && p.properties.spreadsheetId;
   if (S.id !== DEFAULT_ID && got !== S.id) { S.tabs = []; throw {code:"script_outdated", message:`Your Apps Script needs the update that lets it open “${acctName(S.id)}”. Paste the new Code.gs and redeploy, then tap Try again.`}; }
@@ -742,8 +767,7 @@ function parseGrid(rd){
 
 async function loadMonth(title, cacheOnly){
   const t = S.tabs.find(x => x.title === title);
-  const p = await call("get_spreadsheet", {spreadsheetId:S.id, includeGridData:true, ranges:[`${qt(title)}!A1:I160`],
-    fields:["sheets.data.rowData.values.userEnteredValue","sheets.data.rowData.values.effectiveValue"]}, cacheOnly);
+  const p = await call(...REQ.month(title), cacheOnly);
   const rd = (p.sheets && p.sheets[0] && p.sheets[0].data && p.sheets[0].data[0] && p.sheets[0].data[0].rowData) || [];
   const {cell, num, str, fx, has} = parseGrid(rd);
   let hdr = 0;
@@ -772,7 +796,7 @@ async function loadMonth(title, cacheOnly){
 }
 
 async function loadLog(tab, cacheOnly){
-  const p = await call("get_values", {spreadsheetId:S.id, range:`${qt(tab)}!A2:E4000`}, cacheOnly);
+  const p = await call(...REQ.log(tab), cacheOnly);
   const v = (p && p.values) || []; const items = []; let lastRow = 1;
   v.forEach((row, i) => {
     const r = i + 2;
@@ -813,9 +837,20 @@ async function loadAll(pickTitle){
   // 2) Then quietly fetch the fresh copy from the sheet
   S.loading = !S.month; S.refreshing = !!S.month; S.fromCache = null; render();
   try{
-    const tabsP = loadTabs();             // runs alongside the month and logs when the tab list is already known
-    if (!S.tabs.length) await tabsP;
-    const [, d] = await Promise.all([tabsP, gather(want(), false)]);
+    let d = null;
+    if (S.tabs.length) {
+      // newer Apps Script: everything in one trip, then read it back from the saved copies
+      const title = want(), pT = periodTabs(todaySerial()).filter(t => t !== title);
+      if (await prefetch([REQ.tabs(), REQ.month(title), REQ.log("Spending Log"), REQ.log("Savings Log"), ...pT.map(REQ.month)])) {
+        if (stale()) return;
+        await loadTabs(true); d = await gather(title, true); S.fromCache = null;
+      }
+    }
+    if (!d) {
+      const tabsP = loadTabs();             // runs alongside the month and logs when the tab list is already known
+      if (!S.tabs.length) await tabsP;
+      [, d] = await Promise.all([tabsP, gather(want(), false)]);
+    }
     if (stale()) return;
     applyData(d);
     S.loadedAt = S.fromCache ? new Date(S.fromCache) : new Date();
@@ -2138,6 +2173,7 @@ window.addEventListener("scroll", topBtn, {passive:true});
 document.addEventListener("click", e => { if (e.target.closest("h1") && !e.target.closest("#btnAcct")) window.scrollTo({top:0, behavior:"smooth"}); });
 
 /* ---------- boot ---------- */
+try { Object.keys(localStorage).filter(k => k.startsWith("cf_c:get_values:") && k.includes("A2:E4000")).forEach(k => { const n = k.replace("A2:E4000", "A2:E20000"); if (!localStorage.getItem(n)) localStorage.setItem(n, localStorage.getItem(k)); localStorage.removeItem(k); }); } catch(e) {}
 renderAcct();
 render();
 (async () => {
