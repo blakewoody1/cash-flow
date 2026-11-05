@@ -570,12 +570,34 @@ a{color:var(--ink)}
   .bankbtn{background:none;padding:0 8px;height:44px}
   .monthbtn:active,.bankbtn:active{background:var(--chip)}
 }
+
+/* iPhone: no bottom tab bar; the views live in a panel that slides over from the left */
+.menubtn,.dhead,.dscrim{display:none}
+@media (max-width: 899px){
+  .toprow h1{gap:0}
+  .menubtn{display:inline-flex;align-items:center;justify-content:center;margin-right:2px}
+  .dscrim{display:block;position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.28);animation:dsf .2s ease-out}
+  .dscrim[hidden]{display:none}
+  @keyframes dsf{from{opacity:0}to{opacity:1}}
+  #tabs,body.barhide #tabs{position:fixed;z-index:21;left:10px;top:calc(env(safe-area-inset-top) + 10px);bottom:auto;width:min(270px,calc(100vw - 60px));height:auto;
+    display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:10px;border-radius:28px;
+    transform:translateX(calc(-100% - 20px));opacity:1;pointer-events:none;transition:transform .32s cubic-bezier(.2,.8,.2,1)}
+  body.drawer #tabs{transform:none;pointer-events:auto}
+  .dhead{display:block;padding:6px 14px 8px;font-size:13px;font-weight:600;color:var(--muted)}
+  #tabs button{flex:none;flex-direction:row;justify-content:flex-start;gap:14px;height:52px;padding:0 14px;border-radius:18px;font-size:17px;font-weight:600;color:var(--ink)}
+  #tabs button.on{background:var(--chip-on);color:var(--ink)}
+  #tabs svg{flex:none}
+  .totop{bottom:calc(env(safe-area-inset-bottom) + 24px)}
+  body.tlfix .jump,body.tlfix.barhide .jump{bottom:calc(env(safe-area-inset-bottom) + 24px)}
+  body.tlfix .tl{padding-bottom:calc(env(safe-area-inset-bottom) + 96px)}
+  .toast{bottom:calc(env(safe-area-inset-bottom) + 100px)}
+}
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="toprow">
-    <h1><button class="acctbtn" id="btnAcct" aria-label="Switch account"><span id="acctName">Cash Flow</span> <span class="caret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button></h1>
+    <h1><button class="icon menubtn" id="btnMenu" aria-label="Open menu" aria-expanded="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><button class="acctbtn" id="btnAcct" aria-label="Switch account"><span id="acctName">Cash Flow</span> <span class="caret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button></h1>
     <div class="tacts">
       <button class="bankbtn" id="btnBank" aria-label="Open your bank app"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/></svg>Bank</button>
       <button class="icon" id="btnRefresh" aria-label="Refresh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg></button>
@@ -586,7 +608,9 @@ a{color:var(--ink)}
   <div id="queue"></div>
   <div id="leftcol"><div id="hero"></div><div class="foot" id="foot"></div><div id="calc"></div></div>
   <div id="periods"></div>
+  <div class="dscrim" id="dscrim" hidden></div>
   <div class="seg" id="tabs">
+    <div class="dhead">Views</div>
     <button data-tab="timeline" class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Timeline</span></button>
     <button data-tab="uncleared"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M9 12l2 2 4-4"/></svg><span>Uncleared</span></button>
     <button data-tab="spending"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Spending</span></button>
@@ -1822,7 +1846,7 @@ function settingsSheet(){
 
 /* ---------- events ---------- */
 document.addEventListener("click", e => {
-  const t = e.target.closest("button, #scrim"); if (!t) return;
+  const t = e.target.closest("button, #scrim, #dscrim"); if (!t) return;
   if (t.id === "scrim" || t.hasAttribute("data-close")) return closeSheet();
   if (t.id === "fab") return S.month && addSheet();
   if (t.id === "btnRefresh") { if (!S.busy && mcp) { S.tabs = []; loadAll(); } return; }
@@ -1844,7 +1868,9 @@ document.addEventListener("click", e => {
   if (t.dataset.month) { if (!$("#sheet").hidden) closeSheet(); return switchMonth(t.dataset.month); }
   if (t.dataset.hero) { S.heroPanel = S.heroPanel === t.dataset.hero ? "" : t.dataset.hero; lsSet("cf_hero", S.heroPanel); renderHero(); return fitTimeline(); }
   if (t.id === "btnMonth") return monthSheet();
-  if (t.dataset.tab) { S.view = t.dataset.tab; return render(); }
+  if (t.id === "btnMenu") return setDrawer(!document.body.classList.contains("drawer"));
+  if (t.id === "dscrim") return setDrawer(false);
+  if (t.dataset.tab) { setDrawer(false); S.view = t.dataset.tab; return render(); }
   if (t.dataset.add) return S.month && addSheet(t.dataset.add);
   if (t.dataset.type) { lsSet("cf_lasttype", t.dataset.type); const amt = $("#fAmt") && $("#fAmt").value; addSheet(t.dataset.type); if (amt) $("#fAmt").value = amt; return; }
   if (t.dataset.chip != null) { $("#fText").value = t.dataset.chip; return; }
@@ -1961,6 +1987,7 @@ document.addEventListener("submit", e => {
 const KEYMAP = {e:"expense", i:"income", b:"bill", s:"savings"};
 document.addEventListener("keydown", e => {
   const k = (e.key || "").toLowerCase();
+  if (e.key === "Escape" && document.body.classList.contains("drawer")) { e.preventDefault(); setDrawer(false); return; }
   if (e.key === "Escape" && !$("#sheet").hidden) { e.preventDefault(); closeSheet(); return; }
   if ((e.metaKey || e.ctrlKey) && k === "enter") {
     const f = $("#sheet:not([hidden]) form"); if (f) { e.preventDefault(); f.requestSubmit(); } return;
@@ -2166,6 +2193,34 @@ function barOnScroll(y, last, todayY){
 let lastWin = 0;
 window.addEventListener("scroll", () => { const y = window.scrollY; if (!document.body.classList.contains("tlfix")) barOnScroll(y, lastWin, 120); lastWin = y; }, {passive:true});
 window.addEventListener("resize", () => fitTimeline());
+
+/* ---------- iPhone: views menu slides over from the left (button top-left, or swipe in from the left edge) ---------- */
+function setDrawer(open){
+  if (!isPhone()) open = false;
+  document.body.classList.toggle("drawer", open);
+  $("#dscrim").hidden = !open;
+  $("#btnMenu").setAttribute("aria-expanded", open ? "true" : "false");
+  if (open) { const on = document.querySelector("#tabs button.on") || document.querySelector("#tabs button"); if (on) on.focus({preventScroll:true}); }
+}
+(() => {
+  let x0 = null, y0 = 0, from = "";
+  document.addEventListener("touchstart", e => {
+    if (!isPhone() || !$("#sheet").hidden) return;
+    const t = e.touches[0], open = document.body.classList.contains("drawer");
+    if (!open && t.clientX < 22) { x0 = t.clientX; y0 = t.clientY; from = "edge"; }
+    else if (open) { x0 = t.clientX; y0 = t.clientY; from = "panel"; }
+    else x0 = null;
+  }, {passive:true});
+  document.addEventListener("touchmove", e => {
+    if (x0 === null) return;
+    const t = e.touches[0], dx = t.clientX - x0, dy = Math.abs(t.clientY - y0);
+    if (dy > 40 && dy > Math.abs(dx)) { x0 = null; return; }
+    if (from === "edge" && dx > 50) { setDrawer(true); x0 = null; }
+    else if (from === "panel" && dx < -50) { setDrawer(false); x0 = null; }
+  }, {passive:true});
+  document.addEventListener("touchend", () => { x0 = null; }, {passive:true});
+  window.addEventListener("resize", () => { if (!isPhone()) setDrawer(false); });
+})();
 
 /* ---------- back to top ---------- */
 const topBtn = () => { const b = $("#btnTop"); if (b) b.hidden = window.scrollY < 260; };
