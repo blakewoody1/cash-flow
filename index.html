@@ -677,8 +677,12 @@ function cacheSet(k, p){
     } catch(e2) {}
   }
 }
-async function call(tool, input){
+async function call(tool, input, cacheOnly){
   const isRead = READS.has(tool), k = isRead ? "cf_c:" + tool + ":" + JSON.stringify(input) : null;
+  if (isRead && cacheOnly) {   // saved copy only, no network: used to show the app instantly on open
+    const c = cacheGet(k); if (c) { S.fromCache = Math.min(S.fromCache || Infinity, c.t); return c.p; }
+    throw {code:"nocache", message:"Not saved on this device yet."};
+  }
   if (isRead && !navigator.onLine) {
     const c = cacheGet(k); if (c) { S.fromCache = Math.min(S.fromCache || Infinity, c.t); return c.p; }
     throw {code:"offline", message:"No signal, and this hasn't been opened online yet."};
@@ -710,8 +714,8 @@ function errInfo(e){
 const MONTH_RE = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})$/;
 const tabKey = t => { const m = t.match(MONTH_RE); return m ? (+m[2])*12 + MON.indexOf(m[1]) : null; };
 
-async function loadTabs(){
-  const p = await call("get_spreadsheet", {spreadsheetId:S.id, fields:["properties.title","sheets.properties.title","sheets.properties.sheetId"]});
+async function loadTabs(cacheOnly){
+  const p = await call("get_spreadsheet", {spreadsheetId:S.id, fields:["properties.title","sheets.properties.title","sheets.properties.sheetId"]}, cacheOnly);
   S.title = p.properties && p.properties.title;
   // Safety: the Apps Script must confirm it opened this account's sheet (older scripts always open Cash Flow)
   const got = p.properties && p.properties.spreadsheetId;
@@ -736,10 +740,10 @@ function parseGrid(rd){
   return {cell, num, str, fx, has};
 }
 
-async function loadMonth(title){
+async function loadMonth(title, cacheOnly){
   const t = S.tabs.find(x => x.title === title);
   const p = await call("get_spreadsheet", {spreadsheetId:S.id, includeGridData:true, ranges:[`${qt(title)}!A1:I160`],
-    fields:["sheets.data.rowData.values.userEnteredValue","sheets.data.rowData.values.effectiveValue"]});
+    fields:["sheets.data.rowData.values.userEnteredValue","sheets.data.rowData.values.effectiveValue"]}, cacheOnly);
   const rd = (p.sheets && p.sheets[0] && p.sheets[0].data && p.sheets[0].data[0] && p.sheets[0].data[0].rowData) || [];
   const {cell, num, str, fx, has} = parseGrid(rd);
   let hdr = 0;
@@ -767,8 +771,8 @@ async function loadMonth(title){
   return {title, sheetId:t.sheetId, hdr, first:hdr+1, last, rows, sum, e8:fx(8,4), hdrI: str(hdr,8)};
 }
 
-async function loadLog(tab){
-  const p = await call("get_values", {spreadsheetId:S.id, range:`${qt(tab)}!A2:E4000`});
+async function loadLog(tab, cacheOnly){
+  const p = await call("get_values", {spreadsheetId:S.id, range:`${qt(tab)}!A2:E4000`}, cacheOnly);
   const v = (p && p.values) || []; const items = []; let lastRow = 1;
   v.forEach((row, i) => {
     const r = i + 2;
@@ -781,19 +785,46 @@ async function loadLog(tab){
   return {items, lastRow};
 }
 
+// Everything one screen needs, read together (in parallel)
+async function gather(title, cacheOnly){
+  const T = todaySerial();
+  const pTitles = periodTabs(T).filter(t => t !== title);
+  const [m, sp, sv, ...others] = await Promise.all([loadMonth(title, cacheOnly), loadLog("Spending Log", cacheOnly), loadLog("Savings Log", cacheOnly), ...pTitles.map(t => loadMonth(t, cacheOnly).catch(() => null))]);
+  return {m, sp, sv, months: [m, ...others.filter(Boolean)].sort((a,b) => tabKey(a.title) - tabKey(b.title))};
+}
+function applyData(d){ S.month = d.m; S.spend = d.sp; S.save = d.sv; S.periodMonths = d.months; }
+let loadSeq = 0;
 async function loadAll(pickTitle){
-  S.loading = true; S.err = null; S.fromCache = null; render();
+  const seq = ++loadSeq, sid = S.id;
+  const stale = () => seq !== loadSeq || sid !== S.id;
+  const want = () => pickTitle || (S.month && S.month.title) || tabForSerial(todaySerial()) || S.tabs[S.tabs.length-1].title;
+  S.err = null;
+  // 1) Show the copy saved on this device right away, so the app never sits on a blank screen waiting for a slow signal
+  if (!S.month || (pickTitle && S.month.title !== pickTitle)) {
+    S.fromCache = null;
+    try {
+      if (!S.tabs.length) await loadTabs(true);
+      const d = await gather(want(), true);
+      if (stale()) return;
+      applyData(d); S.loadedAt = new Date(S.fromCache || Date.now());
+    } catch(e) { /* nothing saved yet: fall through to the network */ }
+  }
+  if (stale()) return;
+  // 2) Then quietly fetch the fresh copy from the sheet
+  S.loading = !S.month; S.refreshing = !!S.month; S.fromCache = null; render();
   try{
-    if (!S.tabs.length) await loadTabs();
-    const T = todaySerial();
-    const title = pickTitle || (S.month && S.month.title) || tabForSerial(T) || S.tabs[S.tabs.length-1].title;
-    const pTitles = periodTabs(T).filter(t => t !== title);
-    const [m, sp, sv, ...others] = await Promise.all([loadMonth(title), loadLog("Spending Log"), loadLog("Savings Log"), ...pTitles.map(t => loadMonth(t).catch(() => null))]);
-    S.month = m; S.spend = sp; S.save = sv; S.loadedAt = S.fromCache ? new Date(S.fromCache) : new Date();
-    S.periodMonths = [m, ...others.filter(Boolean)].sort((a,b) => tabKey(a.title) - tabKey(b.title));
+    const tabsP = loadTabs();             // runs alongside the month and logs when the tab list is already known
+    if (!S.tabs.length) await tabsP;
+    const [, d] = await Promise.all([tabsP, gather(want(), false)]);
+    if (stale()) return;
+    applyData(d);
+    S.loadedAt = S.fromCache ? new Date(S.fromCache) : new Date();
     S.offline = !!S.fromCache; S.err = null;
-  } catch(e){ if (S.month && (!navigator.onLine || e.code === "server_unavailable" || e.code === "offline")) S.offline = true; else S.err = e; }
-  S.loading = false; render();
+  } catch(e){
+    if (stale()) return;
+    if (S.month && (!navigator.onLine || e.code === "server_unavailable" || e.code === "offline")) S.offline = true; else S.err = e;
+  }
+  S.loading = false; S.refreshing = false; render();
 }
 
 /* ---------- cleared marks ---------- */
@@ -1288,11 +1319,15 @@ function tilesHTML(){
   ${st.some(p => p.partial) ? `<p class="hint">* Only counts months that have a tab in the sheet so far.</p>` : ""}`;
 }
 
+let monthSeq = 0;
 async function switchMonth(title){
   if (S.busy) return;
-  S.loading = true; render();
-  try { S.month = await loadMonth(title); S.err = null; } catch(e){ S.err = e; }
-  S.loading = false; render();
+  const seq = ++monthSeq;
+  try { S.month = await loadMonth(title, true); S.err = null; S.refreshing = true; render(); }   // saved copy instantly
+  catch(e) { S.loading = true; render(); }
+  try { const m = await loadMonth(title); if (seq !== monthSeq) return; S.month = m; S.err = null; }
+  catch(e){ if (seq !== monthSeq) return; if (!S.month || S.month.title !== title) S.err = e; }
+  S.loading = false; S.refreshing = false; render();
   const on = document.querySelector(".chip.on"); if (on) on.scrollIntoView({inline:"center", block:"nearest", behavior:"smooth"});
 }
 
@@ -1417,7 +1452,7 @@ function render(){
   renderQueue(); renderMonths(); renderHero(); if (!$("#calc").innerHTML) renderCalc(); $("#periods").innerHTML = ""; renderView();
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === S.view));
   $("#fab").hidden = !mcp || !!(S.err && !S.month);
-  $("#foot").innerHTML = S.loadedAt ? `<span class="livefrom">Live from “${esc(S.title || "your sheet")}” · </span>Updated ${S.loadedAt.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})} · <a href="https://docs.google.com/spreadsheets/d/${esc(S.id)}/edit" target="_blank" rel="noopener">Open sheet</a>` : "";
+  $("#foot").innerHTML = S.loadedAt ? `<span class="livefrom">Live from “${esc(S.title || "your sheet")}” · </span>${S.refreshing ? "Updating… · " : ""}Updated ${S.loadedAt.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})} · <a href="https://docs.google.com/spreadsheets/d/${esc(S.id)}/edit" target="_blank" rel="noopener">Open sheet</a>` : "";
   $("#foot").innerHTML += `<div><button class="kbbtn" id="btnKeys" aria-label="Keyboard shortcuts">⌘</button></div>`;
 }
 function renderMonths(){
@@ -2114,7 +2149,7 @@ async function startLive(){
   await loadAll();
   flushQueue();
   // live updates: re-read the sheet every minute while visible, and when coming back to the app
-  const quiet = () => mcp && !S.busy && !S.loading && $("#sheet").hidden && document.visibilityState === "visible" && navigator.onLine;
+  const quiet = () => mcp && !S.busy && !S.loading && !S.refreshing && $("#sheet").hidden && document.visibilityState === "visible" && navigator.onLine;
   setInterval(() => { if (!quiet()) return; if (S.queue.length) flushQueue(); else loadAll(); }, 60000);
   document.addEventListener("visibilitychange", () => { if (quiet() && (!S.loadedAt || Date.now() - S.loadedAt > 20000)) { S.queue.length ? flushQueue() : loadAll(); } });
   window.addEventListener("online", () => { S.offline = false; renderQueue(); setTimeout(() => { flushQueue(); if (!S.queue.length) loadAll(); }, 1500); });
