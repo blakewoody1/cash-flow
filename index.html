@@ -563,6 +563,13 @@ a{color:var(--ink)}
 .foot > div{display:inline-flex}
 .foot .kbbtn{margin-top:0;width:26px;height:26px;font-size:14px;border-radius:8px}
 @media (min-width: 900px){ #foot{flex:none;margin:2px 0 8px} #calc{margin-top:0} }
+
+/* iPhone: month and Bank buttons as plain text (still tappable) */
+@media (max-width: 899px){
+  .monthbtn{background:none;padding:0 4px;font-size:14px;min-height:44px;height:auto}
+  .bankbtn{background:none;padding:0 8px;height:44px}
+  .monthbtn:active,.bankbtn:active{background:var(--chip)}
+}
 </style>
 </head>
 <body>
