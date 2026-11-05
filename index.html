@@ -512,6 +512,17 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
   body.barhide #tabs{transform:translateY(calc(100% + 40px));opacity:0;pointer-events:none}
   body.barhide .fab{transform:scale(.8) translateY(10px)}
 }
+
+/* plain top bar and balance card: no outline, rounded box or glass, just the page background */
+.toprow{background:var(--bg);border:0;border-radius:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;
+  left:0;right:0;top:0;height:calc(env(safe-area-inset-top) + 68px);padding:env(safe-area-inset-top) max(10px, calc(50% - 274px)) 0 max(6px, calc(50% - 278px))}
+.hero{background:none;border:0;border-radius:0;box-shadow:none;padding-left:4px;padding-right:4px}
+.hero .stat{background:var(--card)}
+@media (max-width: 899px){ .wrap{padding-top:calc(env(safe-area-inset-top) + 58px)} .hero{padding-top:6px} }
+@media (min-width: 900px){
+  .toprow{top:0;left:0;right:0;height:calc(env(safe-area-inset-top) + 86px);padding:env(safe-area-inset-top) 20px 0;background:var(--bg)}
+  .toprow h1,.tacts{background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
+}
 </style>
 </head>
 <body>
