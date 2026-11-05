@@ -477,6 +477,27 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
   #tabs button{padding:0 11px;font-size:14px}
   .bankbtn{padding:0 11px}
 }
+
+/* compact balance card: small buttons reveal the details; month picker lives in the card */
+.months{display:none!important}
+.herotop{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
+.monthbtn{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 11px;border-radius:15px;background:var(--chip);font-size:13px;font-weight:700;color:var(--ink)}
+.monthbtn:active{transform:scale(.96)}
+.hero .big{margin:2px 0 10px}
+.herobtns{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -6px;padding:0 6px}
+.herobtns::-webkit-scrollbar{display:none}
+.hbtn2{flex:none;height:34px;padding:0 11px;border-radius:17px;background:var(--chip);font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap}
+.hbtn2.on{background:var(--accent);color:var(--accent-ink)}
+.hbtn2.warn:not(.on){color:var(--warn);background:color-mix(in srgb,var(--warn) 13%,transparent)}
+.hbtn2:active{transform:scale(.96)}
+.heropanel{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);animation:hp .16s ease-out}
+@keyframes hp{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.heropanel .stats,.heropanel .clrline,.heropanel .totals{margin-top:0;padding-top:0;border-top:0}
+.hp-empty{font-size:14px;color:var(--muted)}
+.monthgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:4px}
+.mchoice{height:48px;border-radius:14px;background:var(--bg);font-weight:600;font-size:15px}
+.mchoice.on{background:var(--accent);color:var(--accent-ink)}
+@media (min-width: 900px){ .hbtn2{height:32px;font-size:13px;padding:0 11px} }
 </style>
 </head>
 <body>
@@ -528,7 +549,7 @@ function lsSet(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 
 let mcp = null;
 const S = { id: (getAccounts().find(a => a.id === lsGet("cf_acct")) || getAccounts()[0]).id, tabs: [], month: null, spend: {items:[],lastRow:1}, save: {items:[],lastRow:1},
-  view: "timeline", loading: true, err: null, busy: false };
+  view: "timeline", heroPanel: lsGet("cf_hero") || "", loading: true, err: null, busy: false };
 
 /* ---------- dates & money ---------- */
 const EPOCH = Date.UTC(1899,11,30);
@@ -803,6 +824,12 @@ function switchAccount(id){
 }
 function acctRowHTML(a, i){
   return `<div class="acctrow"><input class="aName" value="${esc(a.name)}" placeholder="Name"><input class="aLink" value="${esc(a.id)}" placeholder="Sheet link or ID" autocapitalize="off" autocorrect="off" spellcheck="false">${i > 0 ? `<button type="button" class="qx" data-delacct="${i}" aria-label="Remove">✕</button>` : ""}</div>`;
+}
+function monthSheet(){
+  const cur = S.month && S.month.title, T = todaySerial();
+  openSheet(`<h2>Month</h2>
+    <div class="monthgrid">${S.tabs.map(t => `<button class="mchoice ${t.title === cur ? "on" : ""}" data-month="${esc(t.title)}">${esc(t.title)}</button>`).join("")}</div>
+    <div class="btns"><button type="button" class="btn" data-close>Close</button></div>`);
 }
 function acctSheet(){
   const accts = getAccounts();
@@ -1349,24 +1376,29 @@ function renderHero(){
   }
   const ahead = rows.filter(r => r.serial != null && r.serial >= (inMonth ? T : firstS));
   const low = ahead.length ? Math.min(...ahead.map(r => r.bal)) : m.sum.lowest;
-  h.innerHTML = `<div class="card hero">
-    <div class="lbl">${esc(label)}</div>
-    <div class="big ${bal < 0 ? "neg" : ""}">${money(bal)}</div>
-    <div class="pills">${pill}</div>
-    ${clearedLine()}
-    <div class="stats">
+  const panel = S.heroPanel || "";
+  const dueWarn = /pill warn/.test(pill);
+  const hb = (id, txt, warn) => `<button class="hbtn2 ${panel === id ? "on" : ""} ${warn ? "warn" : ""}" data-hero="${id}" aria-expanded="${panel === id}">${txt}</button>`;
+  const ss = safeStats();
+  const panels = {
+    pay: pill ? `<div class="pills">${pill}</div>` : `<div class="hp-empty">No more paychecks on this month's tab.</div>`,
+    cleared: clearedLine(),
+    month: `<div class="stats">
       <div class="stat"><small>Month end</small><b class="${m.sum.ending < 0 ? "neg" : ""}">${money(m.sum.ending)}</b></div>
       <div class="stat"><small>${inMonth ? "Low ahead" : "Lowest"}</small><b class="${low < 300 ? "neg" : ""}">${money(low)}</b></div>
       <div class="stat"><small>Savings</small><b>${money(m.sum.saveEnd)}</b></div>
-      ${(() => { const ss = safeStats(); return ss ? `<button class="stat statbtn" id="btnSafe"><small>Safe to spend ›</small><b class="${ss.short ? "neg" : "safeval"}">${money(ss.safe)}</b></button>` : ""; })()}
-    </div>
-    <div class="totals">
-      <div class="tcap">${esc(m.title)} totals</div>
-      <div class="tgrid">
+      ${ss ? `<button class="stat statbtn" id="btnSafe"><small>Safe to spend ›</small><b class="${ss.short ? "neg" : "safeval"}">${money(ss.safe)}</b></button>` : ""}
+    </div>`,
+    totals: `<div class="totals"><div class="tgrid">
         <span><small>Income</small><b>${money(m.sum.income)}</b></span><span><small>Bills</small><b>${money(m.sum.bills)}</b></span>
         <span><small>Everyday</small><b>${money(m.sum.spend)}</b></span><span><small>To savings</small><b>${money(m.sum.saved)}</b></span>
-      </div>
-    </div>
+      </div></div>`
+  };
+  h.innerHTML = `<div class="card hero">
+    <div class="herotop"><span class="lbl">${esc(label)}</span><button class="monthbtn" id="btnMonth" aria-label="Change month, showing ${esc(m.title)}">${esc(m.title)} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+    <div class="big ${bal < 0 ? "neg" : ""}">${money(bal)}</div>
+    <div class="herobtns">${hb("pay", "Next pay", dueWarn)}${hb("cleared", "Cleared")}${hb("month", ss ? "Safe to spend" : "Month")}${hb("totals", "Totals")}</div>
+    ${panel && panels[panel] ? `<div class="heropanel">${panels[panel]}</div>` : ""}
   </div>`;
 }
 function notice([head, body], retry){
@@ -1666,7 +1698,9 @@ document.addEventListener("click", e => {
   }
   if (t.id === "btnClearCache") { Object.keys(localStorage).filter(x => x.startsWith("cf_c:")).forEach(x => localStorage.removeItem(x)); toast("Saved offline data cleared — it refills next time you're online"); return; }
   if (t.id === "retry") { S.tabs = []; return loadAll(); }
-  if (t.dataset.month) return switchMonth(t.dataset.month);
+  if (t.dataset.month) { if (!$("#sheet").hidden) closeSheet(); return switchMonth(t.dataset.month); }
+  if (t.dataset.hero) { S.heroPanel = S.heroPanel === t.dataset.hero ? "" : t.dataset.hero; lsSet("cf_hero", S.heroPanel); return renderHero(); }
+  if (t.id === "btnMonth") return monthSheet();
   if (t.dataset.tab) { S.view = t.dataset.tab; return render(); }
   if (t.dataset.add) return S.month && addSheet(t.dataset.add);
   if (t.dataset.type) { lsSet("cf_lasttype", t.dataset.type); const amt = $("#fAmt") && $("#fAmt").value; addSheet(t.dataset.type); if (amt) $("#fAmt").value = amt; return; }
