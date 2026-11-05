@@ -498,6 +498,20 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
 .mchoice{height:48px;border-radius:14px;background:var(--bg);font-weight:600;font-size:15px}
 .mchoice.on{background:var(--accent);color:var(--accent-ink)}
 @media (min-width: 900px){ .hbtn2{height:32px;font-size:13px;padding:0 11px} }
+
+/* iPhone: fixed card + full-height timeline; tab bar slides away while scrolling ahead */
+@media (max-width: 899px){
+  html:has(body.tlfix),body.tlfix{overflow:hidden;overscroll-behavior:none}
+  body.tlfix .wrap{padding-bottom:0}
+  body.tlfix .tl{padding-bottom:calc(env(safe-area-inset-bottom) + 100px);
+    mask-image:linear-gradient(transparent 0,#000 14px);-webkit-mask-image:linear-gradient(transparent 0,#000 14px)}
+  body.tlfix .jump{bottom:calc(env(safe-area-inset-bottom) + 96px);transition:bottom .28s ease}
+  body.tlfix.barhide .jump{bottom:calc(env(safe-area-inset-bottom) + 24px)}
+  #tabs{transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .2s}
+  .fab{transition:transform .3s cubic-bezier(.2,.8,.2,1)}
+  body.barhide #tabs{transform:translateY(calc(100% + 40px));opacity:0;pointer-events:none}
+  body.barhide .fab{transform:scale(.8) translateY(10px)}
+}
 </style>
 </head>
 <body>
@@ -1419,13 +1433,15 @@ function renderView(){
       S.tlMonth = S.month.title; S.snapToday = false;
       const btn = $("#btnToday"), a = $("#tlAnchor");
       const upd8 = () => { if (!a) { btn.hidden = true; return; } const d = a.offsetTop - tl.scrollTop; btn.hidden = Math.abs(d) < 120; btn.textContent = d < 0 ? "↑ Today" : "↓ Today"; };
-      tl.addEventListener("scroll", upd8, {passive:true}); upd8();
+      let last = tl.scrollTop;
+      tl.addEventListener("scroll", () => { upd8(); const y = tl.scrollTop; barOnScroll(y, last, a ? a.offsetTop : 0); last = y; }, {passive:true}); upd8();
     }
   }
   if (S.view === "spending") v.innerHTML += logHTML("spend");
   if (S.view === "savings") v.innerHTML += logHTML("save");
   if (S.view === "summaries") v.innerHTML += tilesHTML();
   if (S.view === "uncleared") v.innerHTML += unclearedHTML();
+  setBar(false); fitTimeline();
 }
 function itemHTML(r, b){
   r = b == null ? r : {...r, bal:b};
@@ -1699,7 +1715,7 @@ document.addEventListener("click", e => {
   if (t.id === "btnClearCache") { Object.keys(localStorage).filter(x => x.startsWith("cf_c:")).forEach(x => localStorage.removeItem(x)); toast("Saved offline data cleared — it refills next time you're online"); return; }
   if (t.id === "retry") { S.tabs = []; return loadAll(); }
   if (t.dataset.month) { if (!$("#sheet").hidden) closeSheet(); return switchMonth(t.dataset.month); }
-  if (t.dataset.hero) { S.heroPanel = S.heroPanel === t.dataset.hero ? "" : t.dataset.hero; lsSet("cf_hero", S.heroPanel); return renderHero(); }
+  if (t.dataset.hero) { S.heroPanel = S.heroPanel === t.dataset.hero ? "" : t.dataset.hero; lsSet("cf_hero", S.heroPanel); renderHero(); return fitTimeline(); }
   if (t.id === "btnMonth") return monthSheet();
   if (t.dataset.tab) { S.view = t.dataset.tab; return render(); }
   if (t.dataset.add) return S.month && addSheet(t.dataset.add);
@@ -1993,6 +2009,29 @@ document.addEventListener("paste", e => {
   const t = e.clipboardData && e.clipboardData.getData("text"); if (!t) return;
   e.preventDefault(); pasteNumber(t);
 });
+
+/* ---------- iPhone: balance card stays put while the timeline scrolls; tab bar tucks away when scrolling ahead ---------- */
+const isPhone = () => window.innerWidth < 900;
+function fitTimeline(){
+  const tl = $("#tl"), on = isPhone() && !!tl;
+  document.body.classList.toggle("tlfix", on);
+  if (!tl) return;
+  if (!on) { tl.style.height = ""; return; }
+  if (window.scrollY) window.scrollTo(0, 0);
+  tl.style.height = Math.max(260, window.innerHeight - tl.getBoundingClientRect().top) + "px";
+}
+let barHidden = false;
+function setBar(hide){ if (hide === barHidden) return; barHidden = hide; document.body.classList.toggle("barhide", hide); }
+// hide while moving down past today; bring back when scrolling up or back near today
+function barOnScroll(y, last, todayY){
+  if (!isPhone()) return setBar(false);
+  const d = y - last;
+  if (y <= todayY + 60 || d < -6) setBar(false);
+  else if (d > 6) setBar(true);
+}
+let lastWin = 0;
+window.addEventListener("scroll", () => { const y = window.scrollY; if (!document.body.classList.contains("tlfix")) barOnScroll(y, lastWin, 120); lastWin = y; }, {passive:true});
+window.addEventListener("resize", () => fitTimeline());
 
 /* ---------- back to top ---------- */
 const topBtn = () => { const b = $("#btnTop"); if (b) b.hidden = window.scrollY < 260; };
