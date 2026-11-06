@@ -1055,6 +1055,21 @@ async function execOp(op){
     if (!S.logHdrDone) { await upd(`'Spending Log'!E1`, [["Cleared"]]); S.logHdrDone = true; }
     return upd(`'Spending Log'!A${op.r}:C${op.r}`, [[serialToUS(op.newSerial), it.text, it.amt]]).then(() => upd(`'Spending Log'!E${op.r}`, [["✓"]]));
   }
+  if (op.type === "repeat") {
+    // a new bill or income on every date (from the Repeats choice when adding). Only the first one can be marked cleared.
+    let n = 0, skipped = 0;
+    const amtKey = op.kind === "income" ? "inc" : "bill";
+    for (const d of op.dates) {
+      toast(`Adding ${n + skipped + 1} of ${op.dates.length}…`, 0);
+      if (op.maybeSent && !(serverAdds && op.opId)) {   // older Apps Script: skip any that already landed on an earlier try
+        const t = tabForSerial(d), m = t && await loadMonth(t);
+        if (m && m.rows.some(r => r.serial === d && norm(r.desc) === norm(op.desc) && Math.abs(r[amtKey] - op.amt) < 0.005)) { n++; continue; }
+      }
+      try { await addItem(op.kind, d, op.desc, op.amt, op.note, n === 0 && op.cleared); n++; }
+      catch(e){ if (NETWORKISH.has(e && e.code) || !navigator.onLine) throw e; skipped++; if (n === 0 && skipped === 1 && d === op.dates[0]) throw e; }
+    }
+    return n;
+  }
   if (op.type === "makerepeat") {
     // turn a logged expense into a repeating bill: take it off the Spending Log, then add a bill on every date
     const fresh = await loadLog("Spending Log"); const it = fresh.items.find(i => i.r === op.r);
@@ -1142,6 +1157,7 @@ function opLabel1(op){
   if (op.type === "row") return `Edit ${op.origDesc} → ${money(op.amt)}${op.scope === "future" ? " (and later)" : ""}`;
   if (op.type === "clearmove") return `Cleared early · move ${op.desc} to ${short(op.newSerial)}${op.scope === "future" ? " (and later)" : ""}`;
   if (op.type === "clearmovelog") return `Cleared early · move expense to ${short(op.newSerial)}`;
+  if (op.type === "repeat") return `Repeating ${op.kind === "income" ? "income" : "bill"} · ${op.desc} · ${money(op.amt)} · ${op.dates.length} dates from ${short(op.dates[0])}`;
   if (op.type === "makerepeat") return `Make repeating · ${op.text} · ${op.dates.length} bills`;
   if (op.type === "clear") return `${op.val ? "Mark" : "Unmark"} cleared · ${op.desc || op.text || ""}`;
   if (op.type === "editlog") return `Edit log entry · ${op.text} · ${money(op.amt)}`;
@@ -1723,6 +1739,9 @@ function addSheet(type){
         ${chips.length ? `<div class="chips">${chips.map(c => `<button type="button" data-chip="${esc(c)}">${esc(c)}</button>`).join("")}</div>` : ""}</label>
       <label class="field"><span>Date</span><input id="fDate" type="date" value="${serialToIso(todaySerial())}" required></label>
       ${type !== "savings" ? `<div class="field"><span>Bank status</span><div class="seg-sm" id="clrSeg"><button type="button" data-clrset="0" class="on">Not cleared yet</button><button type="button" data-clrset="1">Already cleared</button></div></div>` : ""}
+      ${extra ? `<div class="field"><span>Repeats</span><div class="seg-sm" id="arepSeg">${[["never","Never"],["weekly","Weekly"],["biweekly","Every 2 weeks"],["monthly","Monthly"]].map(([v, l]) => `<button type="button" data-arep="${v}" class="${v === "never" ? "on" : ""}">${l}</button>`).join("")}</div></div>
+      <div class="field" id="arepFor" hidden><span>For how long</span><div class="seg-sm" id="arepForSeg">${[[3,"3 months"],[6,"6 months"],[12,"1 year"],["all","Until sheet ends"]].map(([v, l]) => `<button type="button" data-arepfor="${v}" class="${v === "all" ? "on" : ""}">${l}</button>`).join("")}</div>
+        <p class="hint" id="arepHint" style="margin-top:6px"></p></div>` : ""}
       ${extra ? `<label class="field"><span>Note (optional)</span><input id="fNote" placeholder="e.g. Weekly, Amazon"></label>` : ""}
       <p class="hint">${type === "expense" ? "Goes on your Spending Log — it counts toward that week's Everyday spending."
         : type === "savings" ? "Goes on your Savings Log — it comes out of checking and adds to savings."
@@ -1732,6 +1751,22 @@ function addSheet(type){
     </form>`);
   const a0 = $("#fAmt"); if (a0) a0.focus();
   setTimeout(() => { const a = $("#fAmt"); if (a && document.activeElement !== a) a.focus(); }, 60);
+}
+// the Repeats choice on the Add bill / Add income screen
+function addRepeat(){
+  const on = document.querySelector("#arepSeg button.on"); if (!on || on.dataset.arep === "never") return null;
+  const f = document.querySelector("#arepForSeg button.on").dataset.arepfor;
+  return {freq: on.dataset.arep, months: f === "all" ? "all" : +f};
+}
+function drawAddRepeat(){
+  const box = $("#arepFor"); if (!box) return;
+  const r = addRepeat(); box.hidden = !r; if (!r) return;
+  const start = $("#fDate").value ? isoToSerial($("#fDate").value) : todaySerial();
+  const dates = repeatDates(start, r.freq, r.months), word = $("#addForm").dataset.type === "income" ? "income entr" : "bill";
+  const plural = n => word === "bill" ? (n === 1 ? "bill" : "bills") : (n === 1 ? "income entry" : "income entries");
+  $("#arepHint").innerHTML = dates.length
+    ? `Adds <b>${dates.length} ${plural(dates.length)}</b>, ${esc(short(dates[0]))} through ${esc(short(dates[dates.length - 1]))} ${parts(dates[dates.length - 1]).y}.${r.months === "all" ? " After that the monthly job keeps it going in each new month." : ""}${dates.length > 20 ? " This many takes a minute or two." : ""}`
+    : "That date isn't inside your month tabs.";
 }
 /* ---------- cleared early: offer to move it to today ---------- */
 function findItem(target, r, title){
@@ -1893,6 +1928,8 @@ document.addEventListener("click", e => {
   if (t.dataset.add) return S.month && addSheet(t.dataset.add);
   if (t.dataset.type) { lsSet("cf_lasttype", t.dataset.type); const amt = $("#fAmt") && $("#fAmt").value; addSheet(t.dataset.type); if (amt) $("#fAmt").value = amt; return; }
   if (t.dataset.chip != null) { $("#fText").value = t.dataset.chip; return; }
+  if (t.dataset.arep != null) { document.querySelectorAll("#arepSeg button").forEach(b => b.classList.toggle("on", b === t)); drawAddRepeat(); return; }
+  if (t.dataset.arepfor != null) { document.querySelectorAll("#arepForSeg button").forEach(b => b.classList.toggle("on", b === t)); drawAddRepeat(); return; }
   if (t.dataset.clrset != null) { document.querySelectorAll("#clrSeg button").forEach(b => b.classList.toggle("on", b === t)); return; }
   if (t.dataset.dir) { document.querySelectorAll("#dir button").forEach(b => b.classList.toggle("on", b === t)); return; }
   if (t.dataset.row) return rowSheet(+t.dataset.row);
@@ -1943,7 +1980,8 @@ document.addEventListener("click", e => {
       return run("Deleting", () => deleteLog(which === "spend" ? "Spending Log" : "Savings Log", it), "Deleted"); }
   }
 });
-document.addEventListener("change", e => { if (e.target.id === "fShowKey") $("#fKey").type = e.target.checked ? "text" : "password"; });
+document.addEventListener("input", e => { if (e.target.id === "fDate" && $("#arepSeg")) drawAddRepeat(); });
+document.addEventListener("change", e => { if (e.target.id === "fDate" && $("#arepSeg")) drawAddRepeat(); if (e.target.id === "fShowKey") $("#fKey").type = e.target.checked ? "text" : "password"; });
 document.addEventListener("submit", e => {
   e.preventDefault();
   const f = e.target;
@@ -1979,6 +2017,15 @@ document.addEventListener("submit", e => {
     if (type === "expense") return submitOp({type:"log", tab:"Spending Log", serial, text: text || "Expense", amt, cleared}, "Adding expense", `Added ${money(amt)}`);
     if (type === "savings") { const out = document.querySelector("#dir button.on").dataset.dir === "out";
       return submitOp({type:"log", tab:"Savings Log", serial, text: text || (out ? "from savings" : "moved to savings"), amt: out ? -amt : amt}, "Saving", out ? `Pulled ${money(amt)} from savings` : `Moved ${money(amt)} to savings`); }
+    const rp = (type === "income" || type === "bill") ? addRepeat() : null;
+    if (rp) {
+      const dates = repeatDates(serial, rp.freq, rp.months);
+      if (!dates.length) { toast("That date isn't inside your month tabs"); return; }
+      const kind = type, desc = text || (type === "income" ? "Extra income" : "Bill");
+      const word = type === "income" ? (dates.length === 1 ? "income entry" : "income entries") : (dates.length === 1 ? "bill" : "bills");
+      return submitOp({type:"repeat", kind, desc, amt, note: note || {weekly:"Weekly", biweekly:"Every 2 weeks", monthly:"Monthly"}[rp.freq], dates, cleared},
+        `Adding ${dates.length} ${word}`, `Added ${dates.length} repeating ${word}`);
+    }
     if (type === "income") return submitOp({type:"item", kind:"income", serial, desc: text || "Extra income", amt, note, cleared}, "Adding income", `Added +${money(amt)}`);
     if (type === "bill") return submitOp({type:"item", kind:"bill", serial, desc: text || "Bill", amt, note, cleared}, "Adding bill", `Added ${money(amt)} bill`);
   }
