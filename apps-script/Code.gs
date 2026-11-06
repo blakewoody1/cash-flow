@@ -14,6 +14,11 @@
  *
  * Any request with a wrong key is written to an "Access log" tab in the Cash Flow sheet.
  *
+ * Safety rules for the app's requests (so a leaked key can't do much):
+ *   - it can only write to month tabs ("Nov 2026") and the Spending / Savings Log, columns A–I, a few rows at a time
+ *   - formulas are only the running-balance and total formulas the app uses; anything else is saved as plain text
+ *   - new rows are added in one step here, and each change has an ID so a retry never adds it twice
+ *
  * Keeping the sheets current (runs by itself once set up):
  *   - On the 1st of every month it adds month tabs so there are always about 14 months ahead,
  *     copied from your latest month: monthly bills on the same day, weekly bills and paychecks on the
@@ -90,7 +95,7 @@ function shortcutLog_(contents) {
       let day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       const p = String(d.date || '').split('/');
       if (p.length === 3) day = new Date(+p[2], +p[0] - 1, +p[1]);
-      sh.appendRow([day, d.what, Number(d.amount), d.id || '']);
+      sh.appendRow([day, safeText_(String(d.what || '')), Number(d.amount), d.id || '']);
       out.push(d.what + ' $' + d.amount);
     });
     let msg = out.length ? 'Logged ' + out.join(', ') : (bad.length ? "Couldn't read" : 'Nothing new');
@@ -102,7 +107,7 @@ function shortcutLog_(contents) {
 /* ---------- 2. Web app: small read/write API ---------- */
 function api_(req) {
   if (req.key !== KEY) { logBad_('App', req.tool); return { error: 'Wrong key', code: 'needs_reauth' }; }
-  const write = req.tool === 'update_values' || req.tool === 'insert_dimension';
+  const write = WRITES_.indexOf(req.tool) >= 0;
   const lock = write ? LockService.getScriptLock() : null;
   if (lock) lock.waitLock(30000);
   try {
@@ -113,6 +118,7 @@ function api_(req) {
     if (lock) lock.releaseLock();
   }
 }
+const WRITES_ = ['update_values', 'insert_dimension', 'add_item', 'add_log'];
 function run_(tool, i, readOnly) {
   try {
     const ss = sheetFor_(i.spreadsheetId);
@@ -121,6 +127,8 @@ function run_(tool, i, readOnly) {
       case 'get_values': return { result: getValues_(ss, i) };
       case 'update_values': if (!readOnly) return { result: updateValues_(ss, i) }; break;
       case 'insert_dimension': if (!readOnly) return { result: insertDimension_(ss, i) }; break;
+      case 'add_item': if (!readOnly) return { result: addItem_(ss, i) }; break;
+      case 'add_log': if (!readOnly) return { result: addLog_(ss, i) }; break;
     }
     return { error: 'Unknown request: ' + tool, code: 'bad_request' };
   } catch (err) {
@@ -144,7 +152,7 @@ function usedPart_(rg) {
 function getSpreadsheet_(ss, i) {
   if (!i.includeGridData) {
     return {
-      properties: { title: ss.getName(), spreadsheetId: ss.getId(), features: ['batch'] },
+      properties: { title: ss.getName(), spreadsheetId: ss.getId(), features: ['batch', 'add_item', 'add_log', 'guard'] },
       sheets: ss.getSheets().map(s => ({ properties: { title: s.getName(), sheetId: s.getSheetId() } }))
     };
   }
@@ -192,10 +200,12 @@ function updateValues_(ss, i) {
   const rg = ss.getRange(i.range), vals = i.values || [];
   if (!vals.length) return { status: 'success' };
   const width = Math.max.apply(null, vals.map(r => r.length));
+  checkWrite_(rg.getSheet(), rg.getColumn(), rg.getColumn() + width - 1, vals.length);
   const tz = ss.getSpreadsheetTimeZone();
   const grid = vals.map(r => {
     const x = r.map(v => {
       if (v == null) return '';
+      if (typeof v === 'string') v = safeText_(v);
       // the app sends dates as M/D/YYYY — store them as real dates in the sheet's time zone
       if (typeof v === 'string' && /^\d{1,2}\/\d{1,2}\/\d{4}$/.test(v)) return Utilities.parseDate(v, tz, 'M/d/yyyy');
       return v;
@@ -213,12 +223,112 @@ function insertDimension_(ss, i) {
   if (!sh) throw new Error('No tab with id ' + i.sheetId);
   const n = (i.endIndex || 0) - (i.startIndex || 0);
   if (n <= 0) return { status: 'success' };
+  if (i.dimension === 'COLUMNS') throw new Error('The app may only add rows.');
+  checkWrite_(sh, 1, 1, n);
+  if (isMonth_(sh) && i.startIndex < 12) throw new Error('Rows can only be added below the header.');
   if (i.dimension === 'COLUMNS') {
     if (i.startIndex > 0 && i.inheritFromBefore !== false) sh.insertColumnsAfter(i.startIndex, n); else sh.insertColumnsBefore(i.startIndex + 1, n);
   } else {
     if (i.startIndex > 0 && i.inheritFromBefore !== false) sh.insertRowsAfter(i.startIndex, n); else sh.insertRowsBefore(i.startIndex + 1, n);
   }
   return { status: 'success' };
+}
+
+/* ---------- 2b. Safety rules and one-step adds ---------- */
+const LOGS_ = ['Spending Log', 'Savings Log'];
+const MONTH_RE_ = /^(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) \d{4}$/;
+function isMonth_(sh) { return MONTH_RE_.test(sh.getName()); }
+// The app only ever writes to month tabs and the two logs, a handful of cells at a time
+function checkWrite_(sh, c1, c2, rows) {
+  const name = sh.getName(), log = LOGS_.indexOf(name) >= 0;
+  if (!log && !isMonth_(sh)) throw new Error('The app can only change month tabs and the logs, not “' + name + '”.');
+  if (c1 < 1 || c2 > (log ? 5 : 9)) throw new Error('That change is outside the columns the app uses.');
+  if (rows > 20) throw new Error('That change is bigger than the app ever makes.');
+}
+// Only the formulas the app writes (running balance and the month totals). Anything else starting with = is saved as plain text.
+const OK_FORMULAS_ = [/^=F\d+\+D\d+-E\d+$/, /^=SUM\(D\d+:D\d+\)$/, /^=SUM\(E\d+:E\d+\)-E6-E9$/, /^=MIN\(F\d+:F\d+\)$/, /^=F\d+$/, /^=B4$/];
+function safeText_(v) {
+  if (v.charAt(0) !== '=') return v;
+  const f = v.replace(/\s+/g, '');
+  return OK_FORMULAS_.some(re => re.test(f)) ? f : "'" + v;
+}
+
+// Each change from the app carries an ID; remember the ones already done (kept about 90 days)
+function opKey_(ss, id) {
+  return 'op:' + Utilities.base64EncodeWebSafe(Utilities.computeDigest(Utilities.DigestAlgorithm.MD5, ss.getId() + '|' + id));
+}
+function opDone_(ss, id) { return !!(id && PropertiesService.getScriptProperties().getProperty(opKey_(ss, id))); }
+function markOp_(ss, id) { if (id) PropertiesService.getScriptProperties().setProperty(opKey_(ss, id), String(Date.now())); }
+function pruneOps_() {
+  const props = PropertiesService.getScriptProperties(), all = props.getProperties(), old = Date.now() - 90 * 864e5;
+  Object.keys(all).forEach(k => { if (k.indexOf('op:') === 0 && +all[k] < old) props.deleteProperty(k); });
+}
+
+// Adds one bill or income to a month tab in a single step: finds its spot by date, adds the row, and keeps the running balance and totals linked
+function addItem_(ss, i) {
+  if (!i.opId) throw new Error('Missing change ID.');
+  if (opDone_(ss, i.opId)) return { status: 'success', duplicate: true };
+  const sh = ss.getSheetByName(String(i.title || ''));
+  if (!sh || !isMonth_(sh)) throw new Error('No month tab called ' + i.title);
+  const tz = ss.getSpreadsheetTimeZone();
+  if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(i.date))) throw new Error('Bad date.');
+  const date = Utilities.parseDate(i.date, tz, 'M/d/yyyy'), target = serial_(date, tz);
+  const amt = Number(i.amt);
+  if (!isFinite(amt) || Math.abs(amt) > 1e7) throw new Error('Bad amount.');
+  if (i.kind !== 'income' && i.kind !== 'bill') throw new Error('Bad kind.');
+
+  const last = sh.getLastRow(), vals = sh.getRange(1, 1, last, 9).getValues(), forms = sh.getRange(1, 1, last, 9).getFormulas();
+  let hdr = 0;
+  for (let r = 0; r < last; r++) if (vals[r][0] === 'Date' && /^Running/i.test(String(vals[r][5]))) { hdr = r + 1; break; }
+  if (!hdr) throw new Error('No Date / Running Balance header on ' + i.title);
+  const first = hdr + 1;
+  let end = first - 1;
+  const real = [];
+  for (let r = first; r <= last; r++) {
+    const v = vals[r - 1], f = forms[r - 1];
+    if (!f[5]) break;
+    end = r;
+    const blank = !String(v[2] || '').trim() && v[3] === '' && v[4] === '' && !f[3] && !f[4];
+    if (!blank && v[0] instanceof Date) real.push({ r: r, serial: serial_(v[0], tz) });
+  }
+  if (end < first) throw new Error('No rows on ' + i.title);
+  if (real.length && target < real[0].serial) throw new Error('“' + i.title + '” starts later than that date.');
+  let pos = first;
+  real.forEach(x => { if (x.serial <= target) pos = x.r; });
+  const n = pos + 1, wd = DOW_[new Date(Date.UTC(1899, 11, 30) + target * 864e5).getUTCDay()];
+
+  sh.insertRowsAfter(pos, 1);
+  sh.getRange(n, 1, 1, 9).setValues([[date, wd, safeText_(String(i.desc || '').slice(0, 200)),
+    i.kind === 'income' ? amt : '', i.kind === 'bill' ? amt : '', '=F' + pos + '+D' + n + '-E' + n,
+    safeText_(String(i.note || '').slice(0, 300)), '', i.cleared ? '✓' : '']]);
+  if (i.cleared && !vals[hdr - 1][8]) sh.getRange(hdr, 9).setValue('Cleared');
+  if (pos < end) sh.getRange(n + 1, 6).setFormula('=F' + n + '+D' + (n + 1) + '-E' + (n + 1));
+  else {
+    const L = end + 1;
+    sh.getRange(4, 5, 2, 1).setFormulas([['=SUM(D' + first + ':D' + L + ')'], ['=SUM(E' + first + ':E' + L + ')-E6-E9']]);
+    sh.getRange(7, 5, 2, 1).setFormulas([['=MIN(F' + first + ':F' + L + ')'], ['=F' + L]]);
+  }
+  SpreadsheetApp.flush();
+  markOp_(ss, i.opId);
+  return { status: 'success', row: n };
+}
+
+// Adds one entry to the Spending or Savings Log; the change ID goes in column D (same place the Shortcuts put theirs) so it's never added twice
+function addLog_(ss, i) {
+  if (!i.opId) throw new Error('Missing change ID.');
+  if (LOGS_.indexOf(i.tab) < 0) throw new Error('Unknown log ' + i.tab);
+  const sh = ss.getSheetByName(i.tab), id = 'app:' + i.opId;
+  const n = sh.getLastRow();
+  if (n > 1 && sh.getRange(2, 4, n - 1, 1).getValues().some(r => String(r[0]) === id)) return { status: 'success', duplicate: true };
+  const tz = ss.getSpreadsheetTimeZone();
+  if (!/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(String(i.date))) throw new Error('Bad date.');
+  const amt = Number(i.amt);
+  if (!isFinite(amt) || Math.abs(amt) > 1e7) throw new Error('Bad amount.');
+  const r = n + 1;
+  sh.getRange(r, 1, 1, 5).setValues([[Utilities.parseDate(i.date, tz, 'M/d/yyyy'), safeText_(String(i.text || '').slice(0, 200)), amt, id, i.cleared ? '✓' : '']]);
+  if (i.cleared && !sh.getRange(1, 5).getValue()) sh.getRange(1, 5).setValue('Cleared');
+  SpreadsheetApp.flush();
+  return { status: 'success', row: r };
 }
 
 /* ---------- 3. Keeping the sheets current ---------- */
@@ -246,6 +356,7 @@ function monthlyMaintenance() {
         lines.push(name + ': ' + ([added.length ? 'added ' + added.join(', ') : '', archived.length ? 'archived ' + archived.join(', ') : ''].filter(Boolean).join('; ') || 'already up to date'));
       } catch (err) { lines.push(name + ': problem — ' + ((err && err.message) || err)); }
     });
+    try { pruneOps_(); } catch (err) { /* not important */ }
   } finally { lock.releaseLock(); }
   const report = lines.join('\n');
   console.log(report);
@@ -416,40 +527,58 @@ function archiveOld_(ss, name) {
   if (!old.length || !keep.length) return [];
   const tz = ss.getSpreadsheetTimeZone(), arch = archiveFor_(ss, name);
 
-  // 1) the first month that stays keeps its starting balances as plain numbers
-  const k = keep[0].sh;
-  k.getRange(4, 2, 2, 1).setValues(k.getRange(4, 2, 2, 1).getValues());
-  k.getRange(4, 1, 2, 1).setValues([['Starting balance (carried over from ' + old[old.length - 1].title + ')'], ['Savings starting balance (carried over from ' + old[old.length - 1].title + ')']]);
-
-  // 2) copy the old months into the archive with their numbers frozen as they were
+  // 1) copy the old months into the archive with their numbers frozen as they were, then check every cell came across
   old.forEach(t => {
     const copy = t.sh.copyTo(arch);
     let nm = t.title, n = 2; while (arch.getSheetByName(nm)) nm = t.title + ' (' + n++ + ')';
     copy.setName(nm);
-    const rg = t.sh.getDataRange();
-    copy.getRange(1, 1, rg.getNumRows(), rg.getNumColumns()).setValues(rg.getValues());
+    const src = t.sh.getDataRange().getValues();
+    copy.getRange(1, 1, src.length, src[0].length).setValues(src);
+    SpreadsheetApp.flush();
+    if (!same_(src, copy.getRange(1, 1, src.length, src[0].length).getValues())) throw new Error('Archive copy of ' + t.title + " didn't match, so nothing was removed.");
   });
 
-  // 3) move the old log entries
+  // 2) copy the old log entries and check them
   const cutoff = Utilities.parseDate('1/1/' + cutY, tz, 'M/d/yyyy');
-  ['Spending Log', 'Savings Log'].forEach(n => moveOldLog_(ss.getSheetByName(n), arch, n, cutoff));
+  const logs = LOGS_.map(n => copyOldLog_(ss.getSheetByName(n), arch, n, cutoff)).filter(Boolean);
 
-  // 4) remove the old months from the main sheet
+  // 3) everything is safely in the archive: the first month that stays keeps its starting balances as plain numbers
+  const k = keep[0].sh;
+  k.getRange(4, 2, 2, 1).setValues(k.getRange(4, 2, 2, 1).getValues());
+  k.getRange(4, 1, 2, 1).setValues([['Starting balance (carried over from ' + old[old.length - 1].title + ')'], ['Savings starting balance (carried over from ' + old[old.length - 1].title + ')']]);
+
+  // 4) now remove the old entries and months from the main sheet
+  logs.forEach(x => { x.sh.getRange(2, 1, x.rows, x.width).clearContent(); if (x.kept.length) x.sh.getRange(2, 1, x.kept.length, x.width).setValues(x.kept); });
   old.forEach(t => ss.deleteSheet(t.sh));
   const blank = arch.getSheetByName('Sheet1'); if (blank && arch.getSheets().length > 1 && blank.getLastRow() === 0) arch.deleteSheet(blank);
   return old.map(t => t.title);
 }
 
-function moveOldLog_(sh, arch, name, cutoff) {
-  if (!sh || sh.getLastRow() < 2) return;
+// cells match (dates compared by time, numbers to the cent)
+function same_(a, b) {
+  if (a.length !== b.length) return false;
+  for (let r = 0; r < a.length; r++) for (let c = 0; c < a[r].length; c++) {
+    const x = a[r][c], y = b[r] ? b[r][c] : undefined;
+    if (x instanceof Date || y instanceof Date) { if (!(x instanceof Date && y instanceof Date) || x.getTime() !== y.getTime()) return false; }
+    else if (typeof x === 'number' || typeof y === 'number') { if (Math.abs(Number(x) - Number(y)) > 0.004) return false; }
+    else if (String(x) !== String(y)) return false;
+  }
+  return true;
+}
+
+// Copies log entries from before the cutoff into the archive and checks them. Removing them from the main sheet happens later.
+function copyOldLog_(sh, arch, name, cutoff) {
+  if (!sh || sh.getLastRow() < 2) return null;
   const width = sh.getLastColumn(), data = sh.getRange(2, 1, sh.getLastRow() - 1, width).getValues();
   const old = data.filter(r => r[0] instanceof Date && r[0] < cutoff), kept = data.filter(r => !(r[0] instanceof Date && r[0] < cutoff));
-  if (!old.length) return;
+  if (!old.length) return null;
   let a = arch.getSheetByName(name);
   if (!a) { a = arch.insertSheet(name); a.getRange(1, 1, 1, width).setValues(sh.getRange(1, 1, 1, width).getValues()); a.setFrozenRows(1); }
-  a.getRange(a.getLastRow() + 1, 1, old.length, width).setValues(old);
-  sh.getRange(2, 1, data.length, width).clearContent();
-  if (kept.length) sh.getRange(2, 1, kept.length, width).setValues(kept);
+  const at = a.getLastRow() + 1;
+  a.getRange(at, 1, old.length, width).setValues(old);
+  SpreadsheetApp.flush();
+  if (!same_(old, a.getRange(at, 1, old.length, width).getValues())) throw new Error('Archive copy of the ' + name + " didn't match, so nothing was removed.");
+  return { sh: sh, rows: data.length, width: width, kept: kept };
 }
 
 function archiveFor_(ss, name) {

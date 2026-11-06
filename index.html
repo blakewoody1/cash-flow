@@ -662,6 +662,11 @@ function usToSerial(t){
 const dayLabel = s => { const p = parts(s); return `${DOW[p.w]}, ${MON[p.m]} ${p.d}`; };
 const short = s => { const p = parts(s); return `${MON[p.m]} ${p.d}`; };
 const money = n => (n < 0 ? "-" : "") + "$" + Math.abs(n).toLocaleString("en-US",{minimumFractionDigits:2,maximumFractionDigits:2});
+// true if what was typed is a plain amount like 12, 12.5, $1,234.56, -40 or (40) — not "12abc"
+function moneyOK(t){
+  const s = String(t == null ? "" : t).replace(/[$\s]/g, "");
+  return /^(-?|\()(\d{1,3}(,\d{3})+|\d+)?(\.\d{0,2})?\)?$/.test(s) && /\d/.test(s) && (s.startsWith("(") === s.endsWith(")"));
+}
 function parseMoney(t){
   if (t == null || t === "") return 0; if (typeof t === "number") return t;
   let s = String(t).replace(/[$,\s]/g,""); if (s === "-" || s === "") return 0;
@@ -741,12 +746,15 @@ const tabKey = t => { const m = t.match(MONTH_RE); return m ? (+m[2])*12 + MON.i
 // the exact requests each read makes (shared with the one-trip batch read below so they use the same saved copies)
 const REQ = {
   tabs: () => ["get_spreadsheet", {spreadsheetId:S.id, fields:["properties.title","sheets.properties.title","sheets.properties.sheetId"]}],
-  month: title => ["get_spreadsheet", {spreadsheetId:S.id, includeGridData:true, ranges:[`${qt(title)}!A1:I160`],
+  month: title => ["get_spreadsheet", {spreadsheetId:S.id, includeGridData:true, ranges:[`${qt(title)}!A1:I300`],
     fields:["sheets.data.rowData.values.userEnteredValue","sheets.data.rowData.values.effectiveValue"]}],
   log: tab => ["get_values", {spreadsheetId:S.id, range:`${qt(tab)}!A2:E20000`}]
 };
 // the Apps Script says whether it can answer several reads in one trip (newer versions list "batch")
 let batchOK = false;
+// newer Apps Script adds rows in one step on its side, and remembers each change's ID so a retry never adds it twice
+let serverAdds = false;
+const newOpId = () => Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
 // One trip to the Apps Script for many reads; saves each answer like a normal read. Returns false if it couldn't.
 async function prefetch(reqs){
   if (!batchOK || !navigator.onLine) return false;   // older Apps Script: use one request per read
@@ -765,7 +773,9 @@ async function prefetch(reqs){
 async function loadTabs(cacheOnly){
   const p = await call(...REQ.tabs(), cacheOnly);
   S.title = p.properties && p.properties.title;
-  batchOK = !!(p.properties && Array.isArray(p.properties.features) && p.properties.features.indexOf("batch") >= 0);
+  const feats = (p.properties && Array.isArray(p.properties.features)) ? p.properties.features : [];
+  batchOK = feats.indexOf("batch") >= 0;
+  serverAdds = feats.indexOf("add_item") >= 0 && feats.indexOf("add_log") >= 0;
   // Safety: the Apps Script must confirm it opened this account's sheet (older scripts always open Cash Flow)
   const got = p.properties && p.properties.spreadsheetId;
   if (S.id !== DEFAULT_ID && got !== S.id) { S.tabs = []; throw {code:"script_outdated", message:`Your Apps Script needs the update that lets it open “${acctName(S.id)}”. Paste the new Code.gs and redeploy, then tap Try again.`}; }
@@ -1007,7 +1017,9 @@ S.queue = loadQueue();
 const NETWORKISH = new Set(["server_unavailable","upstream_error","rate_limited","offline","bad_response"]);
 
 async function execOp(op){
+  S.opCtx = op.opId ? {id: op.opId, seen: {}} : null;   // lets each row this change adds get a fixed ID
   if (op.type === "log") {
+    if (serverAdds && op.opId) return addLog(op.tab, op.serial, op.text, op.amt, op.cleared, op.opId);
     if (op.maybeSent) {   // the earlier try might have landed: skip if an identical row is already there
       const fresh = await loadLog(op.tab);
       if (fresh.items.some(i => i.serial === op.serial && norm(i.text) === norm(op.text) && Math.abs(i.amt - op.amt) < 0.005)) return;
@@ -1015,7 +1027,7 @@ async function execOp(op){
     return addLog(op.tab, op.serial, op.text, op.amt, op.cleared);
   }
   if (op.type === "item") {
-    if (op.maybeSent) {
+    if (op.maybeSent && !(serverAdds && op.opId)) {
       const t = tabForSerial(op.serial); const m = t && await loadMonth(t);
       const amtKey = op.kind === "income" ? "inc" : "bill";
       if (m && m.rows.some(r => r.serial === op.serial && norm(r.desc) === norm(op.desc) && Math.abs(r[amtKey] - op.amt) < 0.005)) return;
@@ -1046,7 +1058,7 @@ async function execOp(op){
   if (op.type === "makerepeat") {
     // turn a logged expense into a repeating bill: take it off the Spending Log, then add a bill on every date
     const fresh = await loadLog("Spending Log"); const it = fresh.items.find(i => i.r === op.r);
-    if (op.maybeSent && !(it && norm(it.text) === norm(op.origText))) return 0;   // already done on an earlier try
+    if (op.maybeSent && !(serverAdds && op.opId) && !(it && norm(it.text) === norm(op.origText))) return 0;   // already done on an earlier try
     if (it && norm(it.text) === norm(op.origText)) await deleteLog("Spending Log", it);
     let n = 0, skipped = 0;
     for (const d of op.dates) {
@@ -1081,6 +1093,7 @@ function enqueue(op, maybeSent){
 }
 async function submitOp(op, label, done){
   if (S.busy && !flushing) return;
+  if (!op.opId) op.opId = newOpId();
   if (!navigator.onLine || S.queue.length || flushing) {
     // Offline, or older changes still waiting: line this one up behind them so they land in order
     enqueue(op, false); closeSheet();
@@ -1401,7 +1414,8 @@ async function run(label, fn, done){
 }
 
 /* ---------- writes ---------- */
-async function addLog(tab, serial, text, amt, cleared){
+async function addLog(tab, serial, text, amt, cleared, opId){
+  if (serverAdds && opId) return call("add_log", {spreadsheetId:S.id, opId, tab, date:serialToUS(serial), text, amt:round2(amt), cleared:!!cleared});
   const fresh = await loadLog(tab);
   const r = fresh.lastRow + 1;
   await upd(`${qt(tab)}!A${r}:C${r}`, [[serialToUS(serial), text, round2(amt)]]);
@@ -1421,6 +1435,11 @@ async function deleteLog(tab, item){
 async function addItem(kind, serial, desc, amt, note, cleared){
   const title = tabForSerial(serial);
   if (!title) throw {code:"layout", message:"There's no month tab for that date yet."};
+  if (serverAdds && S.opCtx) {
+    // one step on the Apps Script side; the ID is made from this change + what's being added, so a retry is skipped if it already landed
+    const base = [S.opCtx.id, serial, kind, norm(desc), round2(amt)].join("|"), n = S.opCtx.seen[base] = (S.opCtx.seen[base] || 0) + 1;
+    return call("add_item", {spreadsheetId:S.id, opId: base + "|" + n, title, date:serialToUS(serial), kind, desc, amt:round2(amt), note:note || "", cleared:!!cleared});
+  }
   const m = await loadMonth(title);
   const real = m.rows.filter(r => r.kind !== "blank" && r.serial != null);
   if (real.length && serial < real[0].serial) throw {code:"layout", message:`“${title}” starts on ${short(real[0].serial)}. Pick a later date.`};
@@ -1461,7 +1480,7 @@ async function findFuture(m, row){
   for (const r of m.rows) if (r.r > row.r && r.kind === row.kind && norm(r.desc) === key) out.push({title:m.title, r:r.r, serial:r.serial});
   const later = S.tabs.filter(t => tabKey(t.title) > tabKey(m.title));
   if (!later.length) return out;
-  const p = await call("get_spreadsheet", {spreadsheetId:S.id, includeGridData:true, ranges:later.map(t => `${qt(t.title)}!A1:F160`),
+  const p = await call("get_spreadsheet", {spreadsheetId:S.id, includeGridData:true, ranges:later.map(t => `${qt(t.title)}!A1:F300`),
     fields:["sheets.properties.title","sheets.data.rowData.values.userEnteredValue"]});
   for (const sh of (p.sheets||[])){
     const title = sh.properties && sh.properties.title;
@@ -1928,6 +1947,8 @@ document.addEventListener("change", e => { if (e.target.id === "fShowKey") $("#f
 document.addEventListener("submit", e => {
   e.preventDefault();
   const f = e.target;
+  const bad = ["#fAmt", "#fGoal", "#fCushion"].map(id => $(id)).find(el => el && el.value.trim() !== "" && !moneyOK(el.value));
+  if (bad) { toast("That amount doesn't look right — use numbers like 45.99", 4000); bad.focus(); return; }
   const amtRaw = $("#fAmt") ? parseMoney($("#fAmt").value) : 0;
   if (f.id === "planForm") {
     lsSet(akey("cf_goal"), String(Math.max(0, parseMoney($("#fGoal").value))));
@@ -2228,6 +2249,7 @@ window.addEventListener("scroll", topBtn, {passive:true});
 document.addEventListener("click", e => { if (e.target.closest("h1") && !e.target.closest("#btnAcct")) window.scrollTo({top:0, behavior:"smooth"}); });
 
 /* ---------- boot ---------- */
+try { Object.keys(localStorage).filter(k => k.startsWith("cf_c:get_spreadsheet:") && k.includes("!A1:I160")).forEach(k => { const n = k.replace("!A1:I160", "!A1:I300"); if (!localStorage.getItem(n)) localStorage.setItem(n, localStorage.getItem(k)); localStorage.removeItem(k); }); } catch(e) {}
 try { Object.keys(localStorage).filter(k => k.startsWith("cf_c:get_values:") && k.includes("A2:E4000")).forEach(k => { const n = k.replace("A2:E4000", "A2:E20000"); if (!localStorage.getItem(n)) localStorage.setItem(n, localStorage.getItem(k)); localStorage.removeItem(k); }); } catch(e) {}
 renderAcct();
 render();
