@@ -20,7 +20,6 @@
  *     same weekday, plus the weekly Everyday spending / Moved to savings rows.
  *   - Each January it moves month tabs and log entries older than last year into a separate
  *     "<name> Archive" spreadsheet in your Drive, so the sheet (and the app) stay fast. Nothing is deleted.
- *   - Every night it copies the app's current code from GitHub into "Cash Flow App/App code" in your Drive.
  *   To turn this on, run setupSchedule once from the editor (pick it in the function menu, then ▷ Run).
  */
 const KEY = 'CHANGE-ME-to-a-long-random-password';
@@ -33,9 +32,6 @@ const SHEETS = {
 
 const MONTHS_AHEAD = 14;    // keep month tabs this many months past the current month
 const KEEP_YEARS_BACK = 1;  // archive month tabs and log entries from before January of last year
-const APP_FOLDER_ID = '1AHxbAnKatwbxNQbxN0TNVapTmZRr4yEa';   // "Cash Flow App" folder in your Drive (archives go here)
-const CODE_FOLDER_ID = '1T0fLtXX9sQ59vYhwmwn0oAp5wPcdgiXX';  // "Cash Flow App/App code" — refreshed nightly from GitHub
-const REPO_RAW = 'https://raw.githubusercontent.com/blakewoody1/cash-flow/main/';
 
 const opened_ = {};
 function sheetFor_(id) {
@@ -232,12 +228,10 @@ const DOW_ = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
 // Run this once from the editor: it schedules the monthly job and runs it right away.
 function setupSchedule() {
-  ScriptApp.getProjectTriggers().filter(t => ['monthlyMaintenance', 'syncAppCode'].indexOf(t.getHandlerFunction()) >= 0).forEach(t => ScriptApp.deleteTrigger(t));
+  ScriptApp.getProjectTriggers().filter(t => t.getHandlerFunction() === 'monthlyMaintenance').forEach(t => ScriptApp.deleteTrigger(t));
   ScriptApp.newTrigger('monthlyMaintenance').timeBased().onMonthDay(1).atHour(3).create();
-  ScriptApp.newTrigger('syncAppCode').timeBased().everyDays(1).atHour(2).create();
   const report = monthlyMaintenance();
-  const code = syncAppCode();
-  console.log('Scheduled: new months on the 1st around 3 AM; code copy every night around 2 AM.\n' + report + '\n' + code);
+  console.log('Scheduled: runs on the 1st of every month around 3 AM.\n' + report);
 }
 
 function monthlyMaintenance() {
@@ -463,36 +457,5 @@ function archiveFor_(ss, name) {
   if (id) { try { return SpreadsheetApp.openById(id); } catch (err) { /* archive was removed: make a new one */ } }
   const arch = SpreadsheetApp.create(name + ' Archive');
   props.setProperty(key, arch.getId());
-  try { DriveApp.getFileById(arch.getId()).moveTo(DriveApp.getFolderById(APP_FOLDER_ID)); } catch (err) { /* stays in My Drive */ }
   return arch;
-}
-
-/* ---------- 4. Copy of the app's code in Drive ---------- */
-// Copies the current app files from GitHub into the "App code" folder (replacing the old copies there).
-function syncAppCode() {
-  const files = [
-    ['index.html', 'index.html'], ['sw.js', 'sw.js'], ['manifest.webmanifest', 'manifest.webmanifest'],
-    ['icon-180.png', 'icon-180.png'], ['icon-192.png', 'icon-192.png'], ['icon-512.png', 'icon-512.png'],
-    ['apps-script/Code.gs', 'Code.gs'], ['apps-script/README.md', 'Apps Script README.md']
-  ];
-  const folder = DriveApp.getFolderById(CODE_FOLDER_ID), done = [], failed = [];
-  files.forEach(([path, name]) => {
-    try {
-      const res = UrlFetchApp.fetch(REPO_RAW + path, { muteHttpExceptions: true });
-      if (res.getResponseCode() !== 200) throw new Error('GitHub answered ' + res.getResponseCode());
-      const blob = res.getBlob().setName(name), old = folder.getFilesByName(name);
-      const isText = !/\.png$/.test(name);
-      let kept = null;
-      while (old.hasNext()) {
-        const f = old.next();
-        if (isText && !kept) { kept = f; f.setContent(res.getContentText()); }
-        else f.setTrashed(true);   // the old copy goes to Drive's trash (recoverable for 30 days)
-      }
-      if (!kept) folder.createFile(blob);
-      done.push(name);
-    } catch (err) { failed.push(name + ' (' + ((err && err.message) || err) + ')'); }
-  });
-  const msg = 'App code copy: ' + done.length + ' files updated' + (failed.length ? '; problems: ' + failed.join(', ') : '');
-  console.log(msg);
-  return msg;
 }
