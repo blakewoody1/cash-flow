@@ -318,6 +318,13 @@ function addLog_(ss, i) {
 }
 
 /* ---------- 2c. Bills calendar ---------- */
+// Run this once from the editor (pick "authorize" in the function menu, then ▷ Run) so Google asks
+// for permission to use your Bills calendar and the Affirm tracker. It changes nothing.
+function authorize() {
+  const cal = billsCal_(), plans = affirmSheets_().plans;
+  Logger.log('Bills calendar: ' + cal.getName() + ' · Affirm plans tab rows: ' + plans.getLastRow());
+}
+
 function billsCal_() {
   const c = CalendarApp.getCalendarById(BILLS_CAL);
   if (!c) throw new Error("Can't open the Bills calendar.");
