@@ -600,6 +600,15 @@ a{color:var(--ink)}
 .pastrow:active{background:var(--chip)}
 .updbtn{display:inline-flex;align-items:center;gap:4px;padding:6px 4px;color:var(--muted);font-size:12px}
 .updbtn:active{color:var(--ink)}
+.dsep{height:1px;background:var(--line);margin:6px 14px}
+.hpsheet{padding:4px 0}
+.hpsheet .pills{display:flex;flex-wrap:wrap;gap:6px}
+.hpsheet .clrline{margin-top:0;font-size:15px}
+.hpsheet .totals{margin-top:0}
+.hbtn2 .badge{margin-left:6px;vertical-align:0}
+.hbtn2.on .badge{background:var(--accent-ink);color:var(--accent)}
+#tabs button[data-hp]{color:var(--ink)}
+@media (min-width: 900px){ .dsep{width:1px;height:28px;margin:auto 4px} }
 /* icons: grey for everything except money coming in */
 .item .dot,.k-spend .dot,.k-save .dot,.k-start .dot{background:var(--chip)}
 .item .dot::after,.k-spend .dot::after,.k-save .dot::after,.k-start .dot::after{background:var(--muted)}
@@ -625,8 +634,11 @@ a{color:var(--ink)}
   <div class="seg" id="tabs">
     <div class="dhead">Views</div>
     <button data-tab="timeline" class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Timeline</span></button>
-    <button data-tab="uncleared"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M9 12l2 2 4-4"/></svg><span>Uncleared<b class="badge" id="uncBadge" hidden></b></span></button>
     <button data-tab="insights"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-9M12 20V5M19 20v-7"/></svg><span>Insights</span></button>
+    <div class="dsep"></div>
+    <button data-hp="pay"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Next pay</span></button>
+    <button data-hp="cleared"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M9 12l2 2 4-4"/></svg><span>Cleared</span></button>
+    <button data-hp="totals"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg><span>Totals</span></button>
   </div>
   <div id="view"></div>
 </div>
@@ -1593,7 +1605,7 @@ function renderHero(){
   }
   const ahead = rows.filter(r => r.serial != null && r.serial >= (inMonth ? T : firstS));
   const low = ahead.length ? Math.min(...ahead.map(r => r.bal)) : m.sum.lowest;
-  const panel = S.heroPanel || "";
+  const panel = S.heroPanel === "month" ? "month" : "";
   const dueWarn = /pill warn/.test(pill);
   const hb = (id, txt, warn) => `<button class="hbtn2 ${panel === id ? "on" : ""} ${warn ? "warn" : ""}" data-hero="${id}" aria-expanded="${panel === id}">${txt}</button>`;
   const ss = safeStats();
@@ -1611,10 +1623,13 @@ function renderHero(){
         <span><small>Everyday</small><b>${money(m.sum.spend)}</b></span><span><small>To savings</small><b>${money(m.sum.saved)}</b></span>
       </div></div>`
   };
+  S.heroPanels = {...panels, warnPay: dueWarn, title: m.title};
+  const nu = unclearedList().length, uOn = S.view === "uncleared";
+  const uncBtn = `<button class="hbtn2 ${uOn ? "on" : ""}" id="btnUnc" aria-pressed="${uOn}">Uncleared${nu ? `<b class="badge">${nu}</b>` : ""}</button>`;
   h.innerHTML = `<div class="card hero">
     <div class="herotop"><span class="lbl">${esc(label)}</span><button class="monthbtn" id="btnMonth" aria-label="Change month, showing ${esc(m.title)}">${esc(m.title)} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
     <div class="big ${bal < 0 ? "neg" : ""}">${money(bal)}</div>
-    <div class="herobtns">${hb("pay", "Next pay", dueWarn)}${hb("cleared", "Cleared")}${hb("month", ss ? "Safe to spend" : "Month")}${hb("totals", "Totals")}</div>
+    <div class="herobtns">${hb("month", ss ? "Safe to spend" : "Month")}${uncBtn}</div>
     ${panel && panels[panel] ? `<div class="heropanel">${panels[panel]}</div>` : ""}
   </div>`;
 }
@@ -1952,6 +1967,14 @@ document.addEventListener("click", e => {
   if (t.id === "dscrim") return setDrawer(false);
   if (t.dataset.tab) { setDrawer(false); S.view = t.dataset.tab; return render(); }
   if (t.dataset.ins) { S.ins = t.dataset.ins; return renderView(); }
+  if (t.id === "btnUnc") { S.view = S.view === "uncleared" ? "timeline" : "uncleared"; S.snapToday = true; return render(); }
+  if (t.dataset.hp) {
+    setDrawer(false);
+    const P = S.heroPanels; if (!P) return;
+    const head = {pay: "Next pay", cleared: "Cleared balance", totals: `${P.title} totals`}[t.dataset.hp];
+    openSheet(`<h2>${esc(head)}</h2><div class="hpsheet">${P[t.dataset.hp]}</div><div class="btns"><button type="button" class="btn" data-close>Close</button></div>`);
+    return;
+  }
   if (t.id === "btnPast") { S.showPast = true; S.snapToday = true; return renderView(); }
   if (t.dataset.add) return S.month && addSheet(t.dataset.add);
   if (t.dataset.type) { lsSet("cf_lasttype", t.dataset.type); const amt = $("#fAmt") && $("#fAmt").value; addSheet(t.dataset.type); if (amt) $("#fAmt").value = amt; return; }
