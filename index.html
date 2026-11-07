@@ -1978,11 +1978,13 @@ function renderHero(){
   };
   S.heroPanels = {...panels, warnPay: dueWarn, title: m.title};
   const nu = unclearedList().length, uOn = S.view === "uncleared";
+  const sOn = S.view === "savings";
+  const savBtn = `<button class="hbtn2 ${sOn ? "on" : ""}" id="btnSav" aria-pressed="${sOn}">Savings</button>`;
   const uncBtn = `<button class="hbtn2 ${uOn ? "on" : ""}" id="btnUnc" aria-pressed="${uOn}">Uncleared${nu ? `<b class="badge">${nu}</b>` : ""}</button>`;
   h.innerHTML = `<div class="card hero">
     <div class="herotop"><span class="lbl">${esc(label)}</span><button class="monthbtn" id="btnMonth" aria-label="Change month, showing ${esc(m.title)}">${esc(m.title)} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
     <div class="big ${bal < 0 ? "neg" : ""}">${money(bal)}</div>
-    <div class="herobtns">${hb("month", ss ? "Safe to spend" : "Month")}${uncBtn}</div>
+    <div class="herobtns">${hb("month", ss ? "Safe to spend" : "Month")}${savBtn}${uncBtn}</div>
     ${panel && panels[panel] ? `<div class="heropanel">${panels[panel]}</div>` : ""}
   </div>`;
 }
@@ -2009,12 +2011,12 @@ function renderView(){
     }
   }
   if (S.view === "insights") {
-    const sub = S.ins || "overview";
-    v.innerHTML += `<div class="seg-sm inseg">${[["overview","Overview"],["spending","Spending"],["savings","Savings"]].map(([k, l]) => `<button type="button" data-ins="${k}" class="${k === sub ? "on" : ""}">${l}</button>`).join("")}</div>`;
+    const sub = S.ins === "spending" ? "spending" : "overview";
+    v.innerHTML += `<div class="seg-sm inseg">${[["overview","Overview"],["spending","Spending"]].map(([k, l]) => `<button type="button" data-ins="${k}" class="${k === sub ? "on" : ""}">${l}</button>`).join("")}</div>`;
     if (sub === "overview") v.innerHTML += overviewHTML();
     if (sub === "spending") v.innerHTML += logHTML("spend");
-    if (sub === "savings") v.innerHTML += logHTML("save");
   }
+  if (S.view === "savings") v.innerHTML += logHTML("save");
   if (S.view === "affirm") v.innerHTML += affirmHTML();
   if (S.view === "uncleared") v.innerHTML += unclearedHTML();
   setBar(false); fitTimeline();
@@ -2246,7 +2248,7 @@ function clearOnlySheet(target, r, title){
 function rowSheet(r){
   const m = S.month, row = m.rows.find(x => x.r === r); if (!row) return;
   if (row.kind === "spend") { S.view = "insights"; S.ins = "spending"; render(); window.scrollTo({top:0, behavior:"smooth"}); return; }
-  if (row.kind === "save") { if (row.bill) clearOnlySheet("row", row.r, m.title); else { S.view = "insights"; S.ins = "savings"; render(); } return; }
+  if (row.kind === "save") { if (row.bill) clearOnlySheet("row", row.r, m.title); else { S.view = "savings"; render(); } return; }
   if (row.kind === "start") { toast(`Starting balance is set on the sheet${m.title === S.tabs[0].title ? " (cell B4)" : " from last month's ending balance"}.`, 4000); return; }
   const isInc = row.kind === "income", amt = isInc ? row.inc : row.bill;
   openSheet(`
@@ -2326,6 +2328,7 @@ document.addEventListener("click", e => {
   if (t.id === "dscrim") return setDrawer(false);
   if (t.dataset.tab) { setDrawer(false); S.view = t.dataset.tab; return render(); }
   if (t.dataset.ins) { S.ins = t.dataset.ins; return renderView(); }
+  if (t.id === "btnSav") { S.view = S.view === "savings" ? "timeline" : "savings"; S.snapToday = true; return render(); }
   if (t.id === "btnUnc") { S.view = S.view === "uncleared" ? "timeline" : "uncleared"; S.snapToday = true; return render(); }
   if (t.dataset.hp) {
     setDrawer(false);
@@ -2385,7 +2388,7 @@ document.addEventListener("click", e => {
     if (title === S.month.title) { const row = S.month.rows.find(x => x.r === r); if (row && row.kind !== "save") return rowSheet(r); }
     return clearOnlySheet("row", r, title);
   }
-  if (t.id === "goSavings") { closeSheet(); S.view = "insights"; S.ins = "savings"; render(); return; }
+  if (t.id === "goSavings") { closeSheet(); S.view = "savings"; render(); return; }
   if (t.id === "btnToday") { const a = $("#tlAnchor"), tl = $("#tl"); if (a && tl) tl.scrollTo({top: Math.max(0, a.offsetTop - 4), behavior:"smooth"}); return; }
   if (t.dataset.qdel) {
     if (!t.classList.contains("armed")) { t.classList.add("armed"); t.textContent = "Discard?"; return; }
