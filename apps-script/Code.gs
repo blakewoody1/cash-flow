@@ -330,7 +330,15 @@ function billsCal_() {
   if (!c) throw new Error("Can't open the Bills calendar.");
   return c;
 }
-function isoDate_(d, tz) { return Utilities.formatDate(d, tz, 'yyyy-MM-dd'); }
+// Some sheets report no usable time zone, so fall back to the script's (or Eastern)
+function isoDate_(d, tz) {
+  const zones = [tz, Session.getScriptTimeZone(), 'America/New_York'];
+  for (let k = 0; k < zones.length; k++) {
+    if (typeof zones[k] !== 'string' || !zones[k]) continue;
+    try { return Utilities.formatDate(d, zones[k], 'yyyy-MM-dd'); } catch (err) { /* try the next */ }
+  }
+  return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2);
+}
 function parseYmd_(s) {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s))) throw new Error('Bad date.');
   const p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]);
@@ -395,7 +403,8 @@ function affirmSheets_() {
   const ss = SpreadsheetApp.openById(AFFIRM);
   const plans = ss.getSheetByName('Enter Plans'), hist = ss.getSheetByName('Payment History');
   if (!plans || !hist) throw new Error('The Affirm tracker needs "Enter Plans" and "Payment History" tabs.');
-  return { ss: ss, plans: plans, hist: hist, tz: ss.getSpreadsheetTimeZone() };
+  let tz = ''; try { tz = ss.getSpreadsheetTimeZone(); } catch (err) { /* fall back below */ }
+  return { ss: ss, plans: plans, hist: hist, tz: String(tz || Session.getScriptTimeZone() || 'America/New_York') };
 }
 function affirmGet_() {
   const a = affirmSheets_(), n = a.plans.getLastRow(), h = a.hist.getLastRow();

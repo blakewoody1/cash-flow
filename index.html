@@ -358,7 +358,11 @@ button.statcard{display:block;width:100%;text-align:left;font:inherit;color:inhe
   #calc .cval{font-size:26px}
   #calc .tape{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:8px;padding-top:6px}
   #calc .tapelist{flex:1;min-height:44px;max-height:none}
-  #calbox:not([hidden]){flex:2 1 0;min-height:180px;display:flex;flex-direction:column}
+  #calbox:not([hidden]){flex:1 1 0;min-height:160px;display:flex;flex-direction:column}
+  #leftcol:has(#calbox:not([hidden])) #calc{flex:none}
+  #leftcol:has(#calbox:not([hidden])) #calc .tape{flex:none}
+  #leftcol:has(#calbox:not([hidden])) #calc .tapelist{flex:none;max-height:78px;overflow-y:auto}
+  #leftcol:has(#calbox:not([hidden])) #calc .tempty{display:none}
   #calbox .calcard{flex:1}
   /* tighter balance card */
   .hero{padding:14px 16px 12px}
@@ -2675,6 +2679,10 @@ function fitTimeline(){
   const tl = $("#tl"), on = isPhone() && !!tl, pad = !isPhone() && !!tl;
   document.body.classList.toggle("tlfix", on);
   document.body.classList.toggle("tlfixpad", pad);
+  // iPad: the left column (balance, calculator, Bills calendar) fills exactly to the bottom of the screen
+  const lc0 = $("#leftcol");
+  if (lc0 && !isPhone() && matchMedia("(min-width: 900px)").matches) { if (window.scrollY) window.scrollTo(0, 0); lc0.style.height = Math.max(420, window.innerHeight - lc0.getBoundingClientRect().top - 14) + "px"; }
+  else if (lc0) lc0.style.height = "";
   if (!tl) return;
   if (pad) {   // iPad: timeline ends at the same spot as the calculator column on the left
     if (window.scrollY) window.scrollTo(0, 0);
