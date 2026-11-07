@@ -208,6 +208,29 @@ kbd{display:none;font:600 11px -apple-system,sans-serif;color:var(--muted);margi
 .tgrid b{font-size:13px;color:var(--ink);font-variant-numeric:tabular-nums;letter-spacing:-.02em;white-space:nowrap}
 /* ---------- calculator (iPad / wide only) ---------- */
 #calc{display:none;margin-top:14px}
+.warnc{color:var(--warn)}
+button.statcard{display:block;width:100%;text-align:left;font:inherit;color:inherit;cursor:pointer}
+.affrow{display:flex;align-items:center;gap:10px;width:100%;padding:10px 2px;border:0;border-top:1px solid var(--line);background:none;font:inherit;color:inherit;text-align:left;cursor:pointer}
+.affrow:first-of-type{border-top:0}
+.affn{flex:none;width:24px;height:24px;border-radius:12px;background:var(--bg);display:grid;place-items:center;font-size:13px;font-weight:700;color:var(--muted)}
+.afft{flex:1;min-width:0;display:flex;flex-direction:column}.afft small,.affr small{color:var(--muted);font-size:12px}
+.affr{flex:none;display:flex;flex-direction:column;align-items:flex-end}
+#calbox{display:none}
+.calcard{padding:10px 12px;display:flex;flex-direction:column;min-height:0;height:100%}
+.calhead{display:flex;align-items:center;gap:6px}.calhead b{flex:1;text-align:center;font-size:15px}
+.calnav,.caladd{border:0;background:var(--bg);color:var(--text);width:30px;height:30px;border-radius:15px;font-size:18px;line-height:1;cursor:pointer}
+.caladd{color:var(--accent);font-weight:700}
+.calsub{font-size:12px;color:var(--muted);text-align:center;margin:4px 0 6px}
+.callist{flex:1;min-height:0;overflow-y:auto;scrollbar-width:none}.callist::-webkit-scrollbar{display:none}
+.calday{display:flex;gap:8px;padding:5px 0;border-top:1px solid var(--line)}.calday:first-child{border-top:0}
+.calday.past{opacity:.55}.calday.today .cald{color:var(--accent);font-weight:700}
+.cald{flex:none;width:46px;font-size:12px;color:var(--muted);padding-top:3px}
+.calday>div{flex:1;min-width:0}
+.calev{display:flex;justify-content:space-between;gap:8px;width:100%;border:0;background:none;font:inherit;font-size:13px;color:inherit;padding:3px 0;text-align:left;cursor:pointer}
+.calev span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+.titlein{width:100%;font-family:inherit;font-weight:700;font-size:24px;line-height:1.2;border:0;border-bottom:1.5px solid var(--line);background:transparent;color:var(--text);padding:6px 0 8px;margin:4px 0 6px;border-radius:0}
+.titlein:focus{outline:none;border-bottom-color:var(--accent)}
 .calc{padding:14px}
 .cdisp{background:var(--bg);border-radius:12px;padding:10px 14px;text-align:right;margin-bottom:10px}
 .cclip{display:flex;gap:6px;justify-content:flex-start;margin:-2px 0 4px}
@@ -294,6 +317,7 @@ kbd{display:none;font:600 11px -apple-system,sans-serif;color:var(--muted);margi
   #leftcol{grid-column:1;grid-row:3 / span 2;position:sticky;top:16px;align-self:start;max-height:calc(100vh - 24px);overflow-y:auto;scrollbar-width:none}
   #leftcol::-webkit-scrollbar{display:none}
   #calc{display:block}
+  #calbox:not([hidden]){display:block;margin-top:10px}
   #periods{display:none}
   #tabs{grid-column:2;grid-row:3;margin-top:0}
   #view{grid-column:2;grid-row:4}
@@ -334,6 +358,8 @@ kbd{display:none;font:600 11px -apple-system,sans-serif;color:var(--muted);margi
   #calc .cval{font-size:26px}
   #calc .tape{flex:1;min-height:0;display:flex;flex-direction:column;margin-top:8px;padding-top:6px}
   #calc .tapelist{flex:1;min-height:44px;max-height:none}
+  #calbox:not([hidden]){flex:2 1 0;min-height:180px;display:flex;flex-direction:column}
+  #calbox .calcard{flex:1}
   /* tighter balance card */
   .hero{padding:14px 16px 12px}
   .hero .big{font-size:40px;margin:0 0 8px}
@@ -628,13 +654,14 @@ a{color:var(--ink)}
   </div>
   <div class="months" id="months"></div>
   <div id="queue"></div>
-  <div id="leftcol"><div id="hero"></div><div class="foot" id="foot"></div><div id="calc"></div></div>
+  <div id="leftcol"><div id="hero"></div><div class="foot" id="foot"></div><div id="calc"></div><div id="calbox" hidden></div></div>
   <div id="periods"></div>
   <div class="dscrim" id="dscrim" hidden></div>
   <div class="seg" id="tabs">
     <div class="dhead">Views</div>
     <button data-tab="timeline" class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Timeline</span></button>
     <button data-tab="insights"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-9M12 20V5M19 20v-7"/></svg><span>Insights</span></button>
+    <button data-tab="affirm"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 18l5-5 4 3 7-8"/><path d="M15 8h5v5"/></svg><span>Affirm</span></button>
     <div class="dsep"></div>
     <button data-hp="pay"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg><span>Next pay</span></button>
     <button data-hp="cleared"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M9 12l2 2 4-4"/></svg><span>Cleared</span></button>
@@ -775,7 +802,7 @@ const REQ = {
 // the Apps Script says whether it can answer several reads in one trip (newer versions list "batch")
 let batchOK = false;
 // newer Apps Script adds rows in one step on its side, and remembers each change's ID so a retry never adds it twice
-let serverAdds = false;
+let serverAdds = false, calOK = false, affirmOK = false;
 const newOpId = () => Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
 // One trip to the Apps Script for many reads; saves each answer like a normal read. Returns false if it couldn't.
 async function prefetch(reqs){
@@ -798,6 +825,9 @@ async function loadTabs(cacheOnly){
   const feats = (p.properties && Array.isArray(p.properties.features)) ? p.properties.features : [];
   batchOK = feats.indexOf("batch") >= 0;
   serverAdds = feats.indexOf("add_item") >= 0 && feats.indexOf("add_log") >= 0;
+  const hadCal = calOK; calOK = feats.indexOf("calendar") >= 0; affirmOK = feats.indexOf("affirm") >= 0;
+  if (calOK && !hadCal) setTimeout(() => { if (matchMedia("(min-width: 900px)").matches) loadCal(); }, 0);
+  if (affirmOK && !S.affirm) setTimeout(() => loadAffirm(), 0);
   // Safety: the Apps Script must confirm it opened this account's sheet (older scripts always open Cash Flow)
   const got = p.properties && p.properties.spreadsheetId;
   if (S.id !== DEFAULT_ID && got !== S.id) { S.tabs = []; throw {code:"script_outdated", message:`Your Apps Script needs the update that lets it open “${acctName(S.id)}”. Paste the new Code.gs and redeploy, then tap Try again.`}; }
@@ -1044,7 +1074,24 @@ S.queue = loadQueue();
 const NETWORKISH = new Set(["server_unavailable","upstream_error","rate_limited","offline","bad_response"]);
 
 async function execOp(op){
+  const res = await execOp0(op);
+  // "Also add to my Bills calendar" from the Add bill screen (the opId keeps a retry from adding it twice)
+  if (op.cal && calOK) { try { await call("cal_add", {...op.cal, opId: (op.opId || newOpId()) + "|cal"}); loadCal(true); } catch(e) { if (NETWORKISH.has(e && e.code)) throw e; toast("Added to the timeline, but the calendar didn't take it: " + (errInfo(e)[0] || ""), 6000); } }
+  return res;
+}
+async function execOp0(op){
   S.opCtx = op.opId ? {id: op.opId, seen: {}} : null;   // lets each row this change adds get a fixed ID
+  if (op.type === "affirmpay") {
+    if (!affirmOK) throw {code:"script_outdated", message:"Paste the new Apps Script to record Affirm payments."};
+    await call("affirm_pay", {opId: op.opId, planId: op.planId, amount: op.amt, date: op.date, note: op.note, kind: op.regular ? "regular" : "extra"});
+    if (op.timeline && tabForSerial(op.serial)) await addItem("bill", op.serial, `Affirm ${op.name}`, op.amt, op.regular ? "Affirm payment" : (op.amt >= 0 ? "Affirm extra payment" : ""), false);
+    if (op.removeLater) {
+      const later = await laterAffirmBills(op.payment, op.serial);
+      let i = 0; for (const t of later) { toast(`Removing later bills ${++i} of ${later.length}…`, 0); const mm = await loadMonth(t.title); const rr = mm.rows.find(x => x.r === t.r && norm(x.desc) === norm(t.desc)); if (rr) await removeRow(mm, rr); }
+    }
+    S.affirm = null; loadAffirm(true);
+    return 1;
+  }
   if (op.type === "log") {
     if (serverAdds && op.opId) return addLog(op.tab, op.serial, op.text, op.amt, op.cleared, op.opId);
     if (op.maybeSent) {   // the earlier try might have landed: skip if an identical row is already there
@@ -1066,7 +1113,7 @@ async function execOp(op){
     let row = m.rows.find(r => r.r === op.r && norm(r.desc) === norm(op.origDesc));
     if (!row) row = m.rows.find(r => r.serial === op.serial && norm(r.desc) === norm(op.origDesc));
     if (!row) throw {code:"layout", message:`Couldn't find “${op.origDesc}” on ${op.title} anymore.`};
-    return saveRow(m, row, op.desc, op.amt, op.note, op.scope, op.newSerial);
+    return saveRow(m, row, op.desc, op.amt, op.note, op.scope, op.newSerial, op.newKind);
   }
   if (op.type === "clearmove") {
     // cleared early: move to today (just this one, or shift every later one by the same days) and mark it cleared
@@ -1184,6 +1231,7 @@ function opLabel1(op){
   if (op.type === "row") return `Edit ${op.origDesc} → ${money(op.amt)}${op.scope === "future" ? " (and later)" : ""}`;
   if (op.type === "clearmove") return `Cleared early · move ${op.desc} to ${short(op.newSerial)}${op.scope === "future" ? " (and later)" : ""}`;
   if (op.type === "clearmovelog") return `Cleared early · move expense to ${short(op.newSerial)}`;
+  if (op.type === "affirmpay") return `Affirm payment · ${op.name} · ${money(op.amt)}`;
   if (op.type === "repeat") return `Repeating ${op.kind === "income" ? "income" : "bill"} · ${op.desc} · ${money(op.amt)} · ${op.dates.length} dates from ${short(op.dates[0])}`;
   if (op.type === "makerepeat") return `Make repeating · ${op.text} · ${op.dates.length} bills`;
   if (op.type === "clear") return `${op.val ? "Mark" : "Unmark"} cleared · ${op.desc || op.text || ""}`;
@@ -1262,7 +1310,7 @@ function safeStats(){
   for (const r of rows) if (r.serial > T && r.serial <= end && r.bal < low) { low = r.bal; lowDay = r.serial; }
   const covered = rows.length ? rows[rows.length-1].serial : T;
   const weeks = Math.max(1, (end - T + 1) / 7);
-  const safe = Math.max(0, low);
+  const buffer = getCushion(), safe = Math.max(0, low - buffer);   // keeps your buffer (default $100) in checking
   // Your actual pace: logged spending over the last 4 weeks (or since the log starts)
   const first = S.spend.items.length ? Math.min(...S.spend.items.map(i => i.serial)) : T;
   const from = Math.max(first, T - 27), days = T - from + 1;
@@ -1272,7 +1320,7 @@ function safeStats(){
   let low2 = null; for (const r of rows) if (r.serial > lowDay && r.serial <= end && (low2 == null || r.bal < low2)) low2 = r.bal;
   const after = low2 == null ? 0 : Math.max(0, low2 - Math.max(low, 0));
   const weeksAfter = Math.max(1, (end - lowDay) / 7);
-  return {safe, short: low < 0 ? -low : 0, lowDay, perWeek: safe / weeks, weeks, end, pace, spent, from, days, after, afterPerWeek: after / weeksAfter, weeksAfter,
+  return {safe, buffer, short: low < buffer ? buffer - low : 0, lowDay, perWeek: safe / weeks, weeks, end, pace, spent, from, days, after, afterPerWeek: after / weeksAfter, weeksAfter,
     partial: covered < end - 3, endLabel: `${MON[parts(end).m]} ${parts(end).d}`};
 }
 function safeHTML(){
@@ -1281,9 +1329,9 @@ function safeHTML(){
   const over = enough && s.lowDay > todaySerial() + 7 && s.pace > s.perWeek;
   const nearLow = s.lowDay > todaySerial() && s.after > 0;
   return `<div class="card pcard safe">
-    <div class="ph"><b style="display:flex;justify-content:space-between">Safe to spend<span id="liveDot">● live</span></b><small>Now through ${esc(s.endLabel)} · Estimate</small></div>
+    <div class="ph"><b style="display:flex;justify-content:space-between">Safe to spend<span id="liveDot">● live</span></b><small>Now through ${esc(s.endLabel)} · keeps ${money(s.buffer)} in checking · Estimate</small></div>
     ${s.short
-      ? `<div class="pnow neg">$0.00</div><div class="pmeta neg">Already ${money(s.short)} short on ${esc(short(s.lowDay))}. Trim a bill or move a payment.</div>`
+      ? `<div class="pnow neg">$0.00</div><div class="pmeta neg">${money(s.short)} short of keeping ${money(s.buffer)} on ${esc(short(s.lowDay))}. Trim a bill or move a payment.</div>`
       : nearLow
         ? `<div class="pnow">${money(s.safe)}</div>
            <div class="pmeta">between now and <b>${esc(short(s.lowDay))}</b>, your tightest day</div>
@@ -1308,8 +1356,10 @@ function mergedRows(){
 }
 const getGoal = () => { const v = parseFloat(lsGet(akey("cf_goal"))); return isNaN(v) ? 50 : v; };
 const getCushion = () => { const v = parseFloat(lsGet(akey("cf_cushion"))); return isNaN(v) ? 100 : v; };
-function planStats(){
+// payToday: a payment made today (e.g. an Affirm payoff), to see what it does to the allowance
+function planStats(payToday){
   const rows = mergedRows(); if (!rows.length) return null;
+  const x = payToday || 0;
   const T = todaySerial(), p = parts(T), end = toSerial(p.y, p.m + 2, 0);
   const goal = getGoal(), cushion = getCushion();
   let balNow = rows[0].bal; for (const r of rows) if (r.serial <= T) balNow = r.bal;
@@ -1325,7 +1375,7 @@ function planStats(){
     let d = Infinity, tight = T;
     const check = (t, bal) => {
       const days = t - T + 1, saved = g * paydays.filter(s => s <= t).length;
-      const v = (bal + spentToday - cushion - saved) / days;
+      const v = (bal - x + spentToday - cushion - saved) / days;
       if (v < d) { d = v; tight = t; }
     };
     check(T, balNow);
@@ -1446,6 +1496,298 @@ async function switchMonth(title){
   const on = document.querySelector(".chip.on"); if (on) on.scrollIntoView({inline:"center", block:"nearest", behavior:"smooth"});
 }
 
+/* ---------- month end: does it carry you through the first two weeks of next month? ---------- */
+const nextTitleOf = title => { const k = tabKey(title) + 1, t = S.tabs.find(x => tabKey(x.title) === k); return t ? t.title : null; };
+function nextMonthOf(m){
+  const nt = nextTitleOf(m.title); if (!nt) return null;
+  const have = (S.periodMonths || []).find(x => x && x.title === nt) || (S.nextCache && S.nextCache[nt]);
+  if (have) return have;
+  S.nextCache = S.nextCache || {};
+  if (!S.nextLoading) { S.nextLoading = nt; loadMonth(nt, true).catch(() => loadMonth(nt)).then(x => { S.nextCache[nt] = x; S.nextLoading = null; renderHero(); }).catch(() => { S.nextLoading = null; }); }
+  return null;
+}
+// level: "ok" | "warn" (fine for week 1, dips under the buffer in week 2) | "bad" (under the buffer in week 1)
+function monthEndOutlook(m){
+  const n = nextMonthOf(m); if (!n) return null;
+  const buffer = getCushion(), rows = n.rows.filter(r => r.serial != null && r.kind !== "blank");
+  if (!rows.length) return null;
+  const first = Math.min(...rows.map(r => r.serial));
+  const ss = safeStats(), perDay = ss && ss.days >= 14 ? ss.pace / 7 : 0;   // your recent everyday spending, if there's enough history
+  const T = todaySerial();
+  const wk = k => {
+    const a = first + 7 * k, b = a + 6, inW = rows.filter(r => r.serial >= a && r.serial <= b);
+    let low = Infinity, lowDay = a;
+    for (const r of inW) { const est = r.bal - perDay * Math.max(0, r.serial - Math.max(first - 1, T)); if (est < low) { low = est; lowDay = r.serial; } }
+    if (low === Infinity) { const before = rows.filter(r => r.serial < a).pop(); low = before ? before.bal - perDay * Math.max(0, b - Math.max(first - 1, T)) : m.sum.ending; lowDay = b; }
+    return {a, b, low, lowDay, bills: inW.filter(r => r.kind === "bill").reduce((x, r) => x + (r.bill || 0), 0),
+      income: inW.filter(r => r.kind === "income").reduce((x, r) => x + (r.inc || 0), 0), list: inW.filter(r => (r.kind === "bill" && r.bill) || (r.kind === "income" && r.inc))};
+  };
+  const w1 = wk(0), w2 = wk(1);
+  const level = w1.low < buffer ? "bad" : w2.low < buffer ? "warn" : "ok";
+  return {next: n, buffer, perDay, w1, w2, level, ending: m.sum.ending};
+}
+function monthEndSheet(){
+  const m = S.month, o = monthEndOutlook(m);
+  if (!o) { toast(nextTitleOf(m.title) ? "Loading next month…" : "There's no tab for next month yet.", 3000); return; }
+  const msg = o.level === "bad" ? `Not enough to get through the first week of ${esc(o.next.title)} and keep ${money(o.buffer)} in checking.`
+    : o.level === "warn" ? `Covers the first week of ${esc(o.next.title)}, but dips under ${money(o.buffer)} in week 2.`
+    : `Covers the first two weeks of ${esc(o.next.title)} and keeps at least ${money(o.buffer)} in checking.`;
+  const week = (w, i) => `<div class="card pcard"><div class="ph"><b>Week ${i} · ${esc(short(w.a))} – ${esc(short(w.b))}</b><small>${w.bills ? "−" + money(w.bills) + " bills" : "No bills"}${w.income ? " · +" + money(w.income) + " pay" : ""}</small></div>
+      <div class="pnow ${w.low < o.buffer ? (i === 1 ? "neg" : "warnc") : ""}">${money(w.low)}</div><div class="pmeta">lowest point, ${esc(short(w.lowDay))}</div>
+      ${w.list.map(r => `<div class="lrow"><span>${esc(short(r.serial))} · ${esc(r.desc)}</span><b class="${r.kind === "income" ? "pin" : ""}">${r.kind === "income" ? "+" + money(r.inc) : money(r.bill)}</b></div>`).join("")}</div>`;
+  openSheet(`<div class="shead"><button type="button" class="hbtn" data-close>Close</button><b>${esc(m.title)} month end</b><span></span></div>
+    <div class="card pcard"><div class="ph"><b>Ends ${esc(m.title)} with</b><small>Then into ${esc(o.next.title)}</small></div>
+      <div class="pnow ${o.level === "bad" ? "neg" : o.level === "warn" ? "warnc" : ""}">${money(o.ending)}</div>
+      <div class="pmeta">${msg}</div></div>
+    <div class="pgrid" style="margin-top:10px">${week(o.w1, 1)}${week(o.w2, 2)}</div>
+    <p class="est">Uses the bills and paychecks on your ${esc(o.next.title)} tab${o.perDay ? ` plus about ${money(o.perDay * 7)}/week of everyday spending (your average over the last 4 weeks)` : ""}. Keeps ${money(o.buffer)} in checking.</p>
+    <div class="btns"><button type="button" class="btn" id="btnPlan">Change the ${money(o.buffer)} buffer</button></div>`);
+}
+
+/* ---------- Overview (Summaries) ---------- */
+function overviewHTML(){
+  const ps = planStats(); if (!ps) return "";
+  const T = ps.T, rows = mergedRows();
+  const tightRow = rows.filter(r => r.serial === ps.tight && r.kind === "bill").sort((a,b) => b.bill - a.bill)[0];
+  const daily = Math.max(0, ps.daily);
+  const [wa, wb] = payWeek(T);
+  const wSpent = S.spend.items.filter(i => i.serial >= wa && i.serial <= T).reduce((a, i) => a + i.amt, 0);
+  const wBudget = daily * (wb - wa + 1), over = wSpent > wBudget;
+  const pct = wBudget > 0 ? Math.min(100, Math.round(wSpent / wBudget * 100)) : 100;
+  // 1) Spending room: the allowance and this pay week together
+  let html = `<div class="card pcard safe wide">
+    <div class="ph"><b>Spending room</b><small>Covers every bill through ${esc(ps.endLabel)}, saves ${money(ps.goal)} each payday, keeps ${money(ps.cushion)} in checking · Estimate</small></div>
+    ${ps.daily > 0
+      ? `<div class="pnow">${money(daily)}<span class="unit"> / day</span></div><div class="pmeta">≈ ${money(daily * 7)} a week</div>`
+      : `<div class="pnow neg">$0.00<span class="unit"> / day</span></div><div class="pmeta neg">Saving ${money(ps.goal)} every payday doesn't fit before ${esc(short(ps.tight))}.${ps.dailyNoGoal > 0 ? ` Without it: ${money(ps.dailyNoGoal)}/day.` : ""}</div>`}
+    <div class="pmeta" style="margin-top:10px"><b>This pay week</b> (${esc(short(wa))} – ${esc(short(wb))}): ${money(wSpent)} of ${money(wBudget)}</div>
+    <div class="bar"><i style="width:${pct}%;${over ? "background:var(--warn)" : ""}"></i></div>
+    <div class="pflow"><span class="${over ? "neg" : ""}">${over ? money(wSpent - wBudget) + " over" : money(wBudget - wSpent) + " left this week"}</span><span>Tightest day ${esc(short(ps.tight))}${tightRow ? ` (${esc(tightRow.desc)})` : ""}</span></div>
+    <button class="qsync" id="btnPlan" style="margin-top:10px">Savings goal & buffer</button>
+  </div>`;
+  // 2) Coming up: next paycheck and every bill before it
+  const next = rows.find(r => r.kind === "income" && r.serial > T);
+  const until = next ? next.serial : T + 7;
+  const due = rows.filter(r => r.kind === "bill" && r.serial > T && r.serial < until && r.bill);
+  const lowBefore = rows.filter(r => r.serial > T && r.serial < until).reduce((a, r) => Math.min(a, r.bal), ps.balNow);
+  html += `<div class="card pcard wide"><div class="ph"><b>Coming up</b><small>${next ? `Payday ${esc(dayLabel(next.serial))} · ${next.serial - T} day${next.serial - T === 1 ? "" : "s"} · ${money(next.inc)}` : "Next 7 days"}</small></div>
+    ${due.length ? due.map(r => `<div class="lrow"><span>${esc(short(r.serial))} · ${esc(r.desc)}</span><b>${money(r.bill)}</b></div>`).join("") : `<div class="pmeta">No bills before ${next ? "payday" : "then"}.</div>`}
+    <div class="pflow" style="margin-top:6px"><span>${money(due.reduce((a, r) => a + r.bill, 0))} in bills</span><span class="${lowBefore < ps.cushion ? "neg" : ""}">Low before ${next ? "payday" : "then"}: ${money(lowBefore)}</span></div></div>`;
+  // 3) Month end outlook (same check as the Month end button)
+  const cur = (S.periodMonths || []).find(x => x.title === tabForSerial(T));
+  const o = cur && monthEndOutlook(cur);
+  if (o) html += `<button class="card pcard statcard" id="btnMonthEnd2"><div class="ph"><b>${esc(cur.title)} month end ›</b><small>First 2 weeks of ${esc(o.next.title)}</small></div>
+    <div class="pnow ${o.level === "bad" ? "neg" : o.level === "warn" ? "warnc" : ""}">${money(o.ending)}</div>
+    <div class="pmeta">${o.level === "ok" ? "Covers both weeks" : o.level === "warn" ? "Short in week 2" : "Short in week 1"} · keeps ${money(o.buffer)}</div></button>`;
+  // 4) Affirm payoff
+  const af = affirmPlan();
+  if (af) html += `<button class="card pcard statcard" data-tab="affirm"><div class="ph"><b>Affirm payoff ›</b><small>${af.active.length} plans · ${money(af.monthly)}/mo</small></div>
+    <div class="pnow">${money(af.total)}</div><div class="pmeta">${af.sim.months ? `Paid off ${esc(af.sim.doneLabel)} with ${money(af.extra)}/mo extra` : "All paid off"}${af.tip ? ` · ${esc(af.tip.short)}` : ""}</div></button>`;
+  // 5) Weekly spending, last 4 pay weeks
+  const weeks = []; for (let k = 3; k >= 0; k--) { const a = wa - 7 * k, b = a + 6; weeks.push({a, b, s: S.spend.items.filter(i => i.serial >= a && i.serial <= b).reduce((x, i) => x + i.amt, 0)}); }
+  const wMax = Math.max(1, ...weeks.map(w => w.s), daily * 7);
+  html += `<div class="card pcard"><div class="ph"><b>Weekly spending</b><small>Last 4 pay weeks · line = allowance</small></div>
+    <div class="wk">${weeks.map(w => `<div class="wkc"><div class="wkb"><i style="height:${Math.round(w.s / wMax * 100)}%;${w.s > daily * 7 ? "background:var(--warn)" : ""}"></i><s style="bottom:${Math.round(daily * 7 / wMax * 100)}%"></s></div><b>${w.s ? "$" + Math.round(w.s) : "—"}</b><small>${esc(short(w.a))}</small></div>`).join("")}</div></div>`;
+  // 6) Where it's going
+  const mp = parts(T), ma = toSerial(mp.y, mp.m, 1), mb = toSerial(mp.y, mp.m + 1, 0);
+  const cats = new Map();
+  S.spend.items.filter(i => i.serial >= ma && i.serial <= mb && i.amt > 0).forEach(i => { const k = norm(i.text) || "other"; const c = cats.get(k) || {t: i.text || "Other", a: 0, n: 0}; c.a += i.amt; c.n++; cats.set(k, c); });
+  const top = [...cats.values()].sort((a, b) => b.a - a.a).slice(0, 5), topMax = top.length ? top[0].a : 1;
+  html += `<div class="card pcard"><div class="ph"><b>Where it's going</b><small>${MON[mp.m]} spending</small></div>
+    ${top.length ? top.map(c => `<div class="lrow"><span>${esc(c.t)}${c.n > 1 ? ` <small>×${c.n}</small>` : ""}</span><b>${money(c.a)}</b></div><div class="bar thin"><i style="width:${Math.round(c.a / topMax * 100)}%;background:var(--spend)"></i></div>`).join("") : `<div class="pmeta">Nothing logged yet this month.</div>`}</div>`;
+  // 7) Savings
+  const savedMonth = S.save.items.filter(i => i.serial >= ma && i.serial <= T).reduce((a, i) => a + i.amt, 0);
+  const goalMonth = ps.goal * rows.filter(r => r.kind === "income" && r.serial >= ma && r.serial <= mb).length;
+  html += `<div class="card pcard"><div class="ph"><b>Savings</b><small>${MON[mp.m]} goal ${money(goalMonth)}</small></div>
+    <div class="pnow">${money(savedMonth)}</div><div class="pmeta">saved this month · balance ${money(cur ? cur.sum.saveEnd : 0)}</div>
+    <div class="bar"><i style="width:${goalMonth > 0 ? Math.min(100, Math.round(savedMonth / goalMonth * 100)) : 0}%;background:var(--save)"></i></div></div>`;
+  return `<div class="pgrid">${html}</div>`;
+}
+
+/* ---------- Affirm payoff ---------- */
+// Snowball: every plan gets its monthly payment; the extra plus every freed-up payment goes to the smallest balance. Interest = APR/12 on each balance.
+function snowball(plans, extra){
+  let ps = plans.filter(p => p.balance > 0.005).map(p => ({...p, bal: p.balance}));
+  const budget = ps.reduce((a, p) => a + p.payment, 0) + extra, start = parts(todaySerial());
+  const out = {months: 0, interest: 0, payoff: {}, schedule: []};
+  for (let k = 0; ps.length && k < 120; k++) {
+    let interest = 0;
+    ps.forEach(p => { const i = p.bal * p.apr / 12; p.bal += i; interest += i; });
+    let left = budget;
+    ps.forEach(p => { const pay = Math.min(p.payment, p.bal); p.bal -= pay; left -= pay; });
+    ps.sort((a, b) => a.bal - b.bal);
+    for (const p of ps) { if (left <= 0) break; const pay = Math.min(left, p.bal); p.bal -= pay; left -= pay; }
+    const label = `${MON[(start.m + k) % 12]} ${start.y + Math.floor((start.m + k) / 12)}`;
+    const done = ps.filter(p => p.bal <= 0.005);
+    done.forEach(p => { out.payoff[p.id] = label; });
+    ps = ps.filter(p => p.bal > 0.005);
+    out.interest += interest; out.months = k + 1;
+    out.schedule.push({label, paid: budget - Math.max(0, left), interest, left: ps.reduce((a, p) => a + p.bal, 0), done: done.map(p => p.name)});
+    out.doneLabel = label;
+  }
+  return out;
+}
+const getAffExtra = () => { const v = parseFloat(lsGet("cf_affx")); return isNaN(v) ? 200 : v; };
+function affirmPlan(){
+  if (!S.affirm || !S.affirm.plans) return null;
+  const active = S.affirm.plans.filter(p => p.balance > 0.005 && !/paid/i.test(p.status)).sort((a, b) => a.balance - b.balance);
+  const extra = getAffExtra(), sim = snowball(active, extra), base = snowball(active, 0);
+  const total = active.reduce((a, p) => a + p.balance, 0), monthly = active.reduce((a, p) => a + p.payment, 0);
+  // What a payment today does to your daily spending room (bills, savings goal and buffer all still covered).
+  // Suggest it only if the room left is at least what you actually spend a day (or 60% of today's room until there are 2 weeks of history).
+  const ps0 = planStats(), ss = safeStats(), first = active[0];
+  let tip = null;
+  if (first && ps0 && ps0.daily > 0) {
+    const pace = ss && ss.days >= 14 ? ss.pace / 7 : null, floor = pace != null ? pace : ps0.daily * 0.6;
+    const after = amt => { const q = planStats(amt); return q ? q.daily : -1; };
+    const line = (amt, d) => `Your spending room goes from ${money(ps0.daily)} to <b>${money(d)}/day</b> through ${esc(ps0.endLabel)}, still covering every bill, your savings goal and ${money(getCushion())} in checking${pace != null ? ` (you've averaged ${money(pace)}/day)` : ""}.`;
+    const dFull = after(first.balance);
+    if (dFull >= floor) tip = {plan: first, amount: first.balance, short: `pay off ${first.name} now`,
+      text: `Pay off <b>${esc(first.name)}</b> (${money(first.balance)}) today and free up ${money(first.payment)} a month. ${line(first.balance, dFull)}`};
+    else {
+      let lo = 0, hi = first.balance; for (let k = 0; k < 20; k++) { const mid = (lo + hi) / 2; if (after(mid) >= floor) lo = mid; else hi = mid; }
+      const amt = Math.floor(lo / 5) * 5;
+      if (amt >= 25) tip = {plan: first, amount: amt, short: `${money(amt)} extra fits now`,
+        text: `Paying it all off now would squeeze you to ${money(Math.max(0, dFull))}/day. <b>${money(amt)}</b> extra toward <b>${esc(first.name)}</b> fits: ${line(amt, after(amt))} ${money(first.balance - amt)} would be left on it.`};
+    }
+  }
+  return {active, extra, sim, base, total, monthly, tip};
+}
+async function loadAffirm(force){
+  if (!affirmOK || (S.affirmLoading && !force)) return;
+  S.affirmLoading = true;
+  try { const cached = await call("affirm_get", {}, true).catch(() => null); if (cached && !S.affirm) { S.affirm = cached; if (S.view === "affirm" || S.view === "insights") renderView(); } } catch(e) {}
+  try { S.affirm = await call("affirm_get", {}); S.affirmErr = null; } catch(e) { S.affirmErr = e; }
+  S.affirmLoading = false;
+  if (S.view === "affirm" || S.view === "insights") renderView();
+}
+function affirmHTML(){
+  if (!affirmOK) return notice(["Affirm needs the Apps Script update", "Paste the new Code.gs (see the checklist) and this view will show your Affirm plans."]);
+  if (!S.affirm) { loadAffirm(); return S.affirmErr ? notice(errInfo(S.affirmErr), false) : `<div class="card" style="padding:14px"><div class="skel"></div><div class="skel"></div></div>`; }
+  const af = affirmPlan(), x = af.extra;
+  const saved = af.base.interest - af.sim.interest, faster = af.base.months - af.sim.months;
+  let html = `<div class="card pcard wide"><div class="ph"><b>Affirm balance</b><small>${af.active.length} plans · ${money(af.monthly)} a month in payments</small></div>
+    <div class="pnow">${money(af.total)}</div>
+    <div class="pmeta">${af.active.length ? `Paid off <b>${esc(af.sim.doneLabel)}</b> with ${money(x)}/mo extra · about ${money(af.sim.interest)} interest${x ? ` (${money(saved)} less and ${faster} month${faster === 1 ? "" : "s"} sooner than payments only)` : ""}` : "Everything is paid off 🎉"}</div>
+    <div class="field" style="margin-top:10px"><span>Extra each month</span><div class="seg-sm">${[0, 50, 100, 200, 250].map(v => `<button type="button" data-affx="${v}" class="${v === x ? "on" : ""}">$${v}</button>`).join("")}</div></div>
+  </div>`;
+  if (af.tip) html += `<div class="card pcard wide safe"><div class="ph"><b>Suggestion</b><small>Checked against your timeline, savings goal and ${money(getCushion())} buffer</small></div>
+    <div class="pmeta" style="font-size:15px">${af.tip.text}</div>
+    <button class="btn primary" style="margin-top:10px;width:100%" data-affpay="${esc(af.tip.plan.id)}" data-affamt="${af.tip.amount.toFixed(2)}">Record ${money(af.tip.amount)} to ${esc(af.tip.plan.name)}</button></div>`;
+  else if (af.active.length) html += `<div class="card pcard wide"><div class="ph"><b>Suggestion</b></div><div class="pmeta">No room for an extra payment right now without squeezing your everyday spending before ${esc((planStats() || {}).endLabel || "next month")}. Stick with the regular payments; check back after payday.</div></div>`;
+  html += `<div class="card pcard wide"><div class="ph"><b>Snowball order</b><small>Smallest balance first · tap one to record a payment</small></div>
+    ${af.active.map((p, i) => `<button class="affrow" data-affpay="${esc(p.id)}"><span class="affn">${i + 1}</span><span class="afft"><b>${esc(p.name)}</b><small>${money(p.payment)}/mo · ${(p.apr * 100).toFixed(2)}% · ${p.left} left · next ${esc(p.due ? short(isoToSerial(p.due)) : "—")}</small></span><span class="affr"><b>${money(p.balance)}</b><small>gone ${esc(af.sim.payoff[p.id] || "—")}</small></span></button>`).join("")}
+  </div>`;
+  const paid = S.affirm.plans.filter(p => /paid/i.test(p.status) || p.balance <= 0.005);
+  if (paid.length) html += `<div class="card pcard"><div class="ph"><b>Paid off</b><small>${paid.length}</small></div>${paid.map(p => `<div class="lrow"><span>${esc(p.name)}</span><b>${esc(p.paidOff ? short(isoToSerial(p.paidOff)) : "✓")}</b></div>`).join("")}</div>`;
+  const hist = (S.affirm.history || []).slice(-5).reverse();
+  if (hist.length) html += `<div class="card pcard"><div class="ph"><b>Recent payments</b></div>${hist.map(h => `<div class="lrow"><span>${esc(h.date ? short(isoToSerial(h.date)) : "")} · ${esc(h.name)}${h.status === "PAID OFF" ? " ✓" : ""}</span><b>${money(h.amount)}</b></div>`).join("")}</div>`;
+  html += `<p class="est">Estimates use APR ÷ 12 on each balance, like your tracker's snowball sheet. Check Affirm's payoff amount before paying a plan off. Data: your “Affirm Payment Plans Tracker” sheet.</p>`;
+  return `<div class="pgrid">${html}</div>`;
+}
+function affirmPaySheet(id, amt){
+  const p = S.affirm && S.affirm.plans.find(x => x.id === id); if (!p) return;
+  const a = amt != null ? +amt : p.balance;
+  openSheet(`<div class="shead"><button type="button" class="hbtn" data-close>Cancel</button><b>Affirm payment</b><button type="submit" form="affForm" class="hbtn primary">Record</button></div>
+    <h2>${esc(p.name)}</h2><div class="hint" style="margin-top:-6px">Balance ${money(p.balance)} · ${money(p.payment)}/mo · ${(p.apr * 100).toFixed(2)}% APR</div>
+    <form id="affForm" data-plan="${esc(p.id)}" autocomplete="off">
+      <label class="field"><span>Amount paid</span><input class="money-in" id="fAmt" inputmode="decimal" value="${a.toFixed(2)}"></label>
+      <div class="seg-sm" style="margin:-4px 0 10px"><button type="button" data-affset="${p.balance.toFixed(2)}">Pay it off · ${money(p.balance)}</button><button type="button" data-affset="${p.payment.toFixed(2)}">Regular · ${money(p.payment)}</button></div>
+      <label class="field"><span>Date</span><input id="fDate" type="date" value="${serialToIso(todaySerial())}"></label>
+      <label class="field"><span>Note (optional)</span><input id="fNote" placeholder="e.g. extra payment"></label>
+      <label class="radio"><input type="checkbox" id="fAffTl" checked><span><b>Add it to the timeline</b><br><small class="hint">As a bill on that date (“Affirm ${esc(p.name)}”), so your balance is right. Skipped for a regular payment, since that bill is already there.</small></span></label>
+      <label class="radio"><input type="checkbox" id="fAffRm" checked><span><b>If this pays it off, remove the later ${money(p.payment)} Affirm bills</b><br><small class="hint">From your month tabs after this date, so that money shows up as free.</small></span></label>
+      <p class="hint">Updates the balance in your tracker and adds a line to its Payment History. Make the payment in the Affirm app too — this only records it.</p>
+    </form>`);
+}
+// Later Affirm bills for a plan: bills whose name mentions Affirm with the plan's monthly amount, after a date
+async function laterAffirmBills(payment, after){
+  const out = [], later = S.tabs.filter(t => { const k = tabKey(t.title), p = parts(after); return k >= p.y * 12 + p.m; });
+  if (!later.length) return out;
+  const p = await call("get_spreadsheet", {spreadsheetId:S.id, includeGridData:true, ranges:later.map(t => `${qt(t.title)}!A1:F300`), fields:["sheets.properties.title","sheets.data.rowData.values.userEnteredValue"]});
+  for (const sh of (p.sheets || [])) {
+    const title = sh.properties && sh.properties.title, rd = (sh.data && sh.data[0] && sh.data[0].rowData) || [];
+    const {cell, str, fx} = parseGrid(rd);
+    let hdr = 0; for (let r = 1; r <= rd.length; r++) if (str(r,0) === "Date") { hdr = r; break; }
+    if (!hdr) continue;
+    for (let r = hdr + 1; r <= rd.length; r++) {
+      if (!fx(r,5)) break;
+      const u = cell(r,0).userEnteredValue, serial = u && typeof u.numberValue === "number" ? u.numberValue : null, e = cell(r,4).userEnteredValue;
+      const amt = e && typeof e.numberValue === "number" ? e.numberValue : null;
+      if (serial != null && serial > after && /affirm/i.test(str(r,2)) && amt != null && Math.abs(amt - payment) < 0.01) out.push({title, r, serial, desc: str(r,2)});
+    }
+  }
+  return out;
+}
+
+/* ---------- Bills calendar (iPad, under the calculator) ---------- */
+const calKey = k => `${parts(k).y}-${String(parts(k).m + 1).padStart(2, "0")}`;
+function splitCalTitle(t){ const m = /^(.*?)\s*-\s*\$([\d,]+(?:\.\d{1,2})?)\s*$/.exec(t || ""); return m ? {name: m[1], amt: parseMoney(m[2])} : {name: t || "", amt: null}; }
+function calTitle(name, amt){ return amt ? `${name} - $${(+amt).toFixed(2).replace(/\.00$/, "")}` : name; }
+async function loadCal(force){
+  if (!calOK) return;
+  const T = todaySerial(), base = S.calMonth != null ? S.calMonth : toSerial(parts(T).y, parts(T).m, 1);
+  S.calMonth = base;
+  const p = parts(base), a = toSerial(p.y, p.m, 1), b = toSerial(p.y, p.m + 1, 0), key = calKey(a);
+  const req = {from: serialToIso(a), to: serialToIso(b)};
+  if (!S.cal || S.cal.key !== key) { try { const c = await call("cal_list", req, true); S.cal = {key, events: c.events}; renderCal(); } catch(e) { S.cal = {key, events: null}; renderCal(); } }
+  try { const c = await call("cal_list", req); if (calKey(S.calMonth) === key) { S.cal = {key, events: c.events}; S.calErr = null; } } catch(e) { S.calErr = e; }
+  renderCal();
+}
+function renderCal(){
+  const el = $("#calbox"); if (!el) return;
+  if (!calOK) { el.innerHTML = ""; el.hidden = true; return; }
+  el.hidden = false;
+  const T = todaySerial(), base = S.calMonth != null ? S.calMonth : toSerial(parts(T).y, parts(T).m, 1), p = parts(base);
+  const evs = (S.cal && S.cal.key === calKey(base) && S.cal.events) || null;
+  const days = new Map();
+  (evs || []).forEach(e => { const s = isoToSerial(e.date); if (!days.has(s)) days.set(s, []); days.get(s).push(e); });
+  const keys = [...days.keys()].sort((a, b) => a - b);
+  const total = (evs || []).reduce((a, e) => a + (splitCalTitle(e.title).amt || 0), 0);
+  el.innerHTML = `<div class="card calcard">
+    <div class="calhead"><button class="calnav" data-calnav="-1" aria-label="Previous month">‹</button><b>Bills · ${MON[p.m]} ${p.y}</b><button class="calnav" data-calnav="1" aria-label="Next month">›</button><button class="caladd" id="calAdd" aria-label="Add event">+</button></div>
+    <div class="calsub">${evs ? `${evs.length} events${total ? " · " + money(total) : ""}` : S.calErr ? esc(errInfo(S.calErr)[0]) : "Loading…"}</div>
+    <div class="callist">${keys.map(s => `<div class="calday ${s === T ? "today" : ""} ${s < T ? "past" : ""}" ${s === T ? 'id="calToday"' : ""}><span class="cald">${DOW[parts(s).w].slice(0, 3)} ${parts(s).d}</span><div>${days.get(s).map(e => { const t = splitCalTitle(e.title); return `<button class="calev" data-calev="${esc(e.id)}" data-caldate="${esc(e.date)}"><span>${esc(t.name)}${e.repeats ? " ↻" : ""}</span>${t.amt != null ? `<b>${money(t.amt)}</b>` : ""}</button>`; }).join("")}</div></div>`).join("") || (evs ? `<div class="calsub">Nothing on the Bills calendar this month.</div>` : "")}</div>
+  </div>`;
+  const tday = $("#calToday"), list = el.querySelector(".callist"); if (tday && list) list.scrollTop = Math.max(0, tday.offsetTop - list.offsetTop - 4);
+}
+function calSheet(id, date){
+  const ev = id && S.cal && (S.cal.events || []).find(e => e.id === id && e.date === date);
+  const t = splitCalTitle(ev ? ev.title : "");
+  openSheet(`<div class="shead"><button type="button" class="hbtn" data-close>Cancel</button><b>${ev ? "Edit event" : "New bill event"}</b><button type="submit" form="calForm" class="hbtn primary">${ev ? "Save" : "Add"}</button></div>
+    <form id="calForm" data-id="${esc(ev ? ev.id : "")}" data-date="${esc(ev ? ev.date : "")}" data-repeats="${ev && ev.repeats ? 1 : 0}" autocomplete="off">
+      <input id="fText" class="titlein" value="${esc(t.name)}" placeholder="Bill name" aria-label="Name">
+      <label class="field"><span>Amount (goes in the title, like “Starlink - $140”)</span><input class="money-in" id="fAmt" inputmode="decimal" value="${t.amt != null ? t.amt.toFixed(2) : ""}" placeholder="$0.00"></label>
+      <label class="field"><span>Date</span><input id="fDate" type="date" value="${ev ? ev.date : serialToIso(todaySerial())}"></label>
+      <label class="field"><span>Note</span><input id="fNote" value="${esc(ev ? ev.note : "")}"></label>
+      ${ev ? (ev.repeats ? `<div class="field"><span>Apply to</span></div>
+        <label class="radio"><input type="radio" name="cscope" value="one" checked><span><b>Just this one</b> (${esc(short(isoToSerial(ev.date)))})</span></label>
+        <label class="radio"><input type="radio" name="cscope" value="all"><span><b>Every one in the series</b><br><small class="hint">Name and note only; dates stay as they are.</small></span></label>` : "")
+        + `<div class="btns"><button type="button" class="btn danger" id="calDel" style="flex:1">Delete${ev.repeats ? "…" : ""}</button></div>`
+      : `<div class="field"><span>Repeats</span><div class="seg-sm" id="crepSeg">${[["never","Never"],["weekly","Weekly"],["biweekly","Every 2 weeks"],["monthly","Monthly"]].map(([v, l]) => `<button type="button" data-crep="${v}" class="${v === "never" ? "on" : ""}">${l}</button>`).join("")}</div></div>
+        <label class="field" id="cUntilBox" hidden><span>Last one on or before (optional)</span><input id="fUntil" type="date"></label>`}
+      <p class="hint">Changes your Google “Bills” calendar right away${ev ? "" : ". To add it to the timeline too, use + Bill instead"}.</p>
+    </form>`);
+}
+function calDelSheet(id, date, repeats){
+  openSheet(`<h2>Delete this event?</h2><div class="choices">
+    <button class="choice" data-caldel="one" data-id="${esc(id)}" data-date="${esc(date)}"><b>${repeats ? "Just this one" : "Delete it"}</b><small>${esc(short(isoToSerial(date)))}${repeats ? " only" : ""}</small></button>
+    ${repeats ? `<button class="choice" data-caldel="all" data-id="${esc(id)}" data-date="${esc(date)}"><b>The whole series</b><small>Every date, past and future</small></button>` : ""}</div>
+    <div class="btns"><button type="button" class="btn" data-close>Cancel</button></div>`);
+}
+async function calWrite(op, label, done){
+  // calendar changes aren't queued offline: they need a signal
+  if (!navigator.onLine) { toast("Calendar changes need a signal"); return; }
+  if (S.busy) return; S.busy = true; toast(label + "…", 0);
+  try {
+    if (op.type === "caladd") await call("cal_add", op.input);
+    if (op.type === "calupd") await call("cal_update", op.input);
+    if (op.type === "caldel") await call("cal_delete", {id: op.id, date: op.date, scope: op.scope});
+    closeSheet(); toast(done);
+  } catch(e) { const [h, b] = errInfo(e); toast(`${h}. ${b || ""}`, 6000); }
+  finally { S.busy = false; loadCal(true); }
+}
+
 /* ---------- toast & busy ---------- */
 let toastTimer;
 function toast(msg, ms=2600){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); if (ms) toastTimer = setTimeout(() => t.hidden = true, ms); }
@@ -1504,9 +1846,9 @@ async function addItem(kind, serial, desc, amt, note, cleared){
   }
 }
 
-async function saveRow(m, row, desc, amt, note, scope, newSerial){
-  if (newSerial != null && row.serial != null && newSerial !== row.serial) return moveRows(m, row, desc, amt, note, scope, newSerial);
-  const isInc = row.kind === "income";
+async function saveRow(m, row, desc, amt, note, scope, newSerial, newKind){
+  if (newSerial != null && row.serial != null && newSerial !== row.serial) return moveRows(m, row, desc, amt, note, scope, newSerial, {newKind});
+  const isInc = (newKind || row.kind) === "income";
   const vals = isInc ? [desc, round2(amt), ""] : [desc, "", round2(amt)];
   const targets = [{title:m.title, r:row.r}];
   if (scope === "future") targets.push(...await findFuture(m, row));
@@ -1514,8 +1856,8 @@ async function saveRow(m, row, desc, amt, note, scope, newSerial){
   for (const t of targets){
     i++; if (targets.length > 1) toast(`Updating ${i} of ${targets.length}…`, 0);
     await upd(`${qt(t.title)}!C${t.r}:E${t.r}`, [vals]);
+    if (note !== row.note && (t.title !== m.title || t.r === row.r || scope === "future")) await upd(`${qt(t.title)}!G${t.r}`, [[note]]);
   }
-  if (note !== row.note) await upd(`${qt(m.title)}!G${row.r}`, [[note]]);
   return targets.length;
 }
 async function findFuture(m, row){
@@ -1561,7 +1903,7 @@ async function moveRows(m, row, desc, amt, note, scope, newSerial, opts = {}){
     const own = kind === "income" ? rr.inc : rr.bill;
     const amount = amt == null ? own : (t.first || scope === "future" ? amt : own);
     await removeRow(mm, rr);
-    try { await addItem(kind, dest, desc, amount, t.first ? note : rr.note, t.first && opts.clearFirst ? true : rr.cleared); done++; }
+    try { await addItem(opts.newKind || kind, dest, desc, amount, t.first || scope === "future" ? note : rr.note, t.first && opts.clearFirst ? true : rr.cleared); done++; }
     catch(e){ skipped++; if (t.first) throw e; }
   }
   if (skipped) toast(`Moved ${done}; ${skipped} couldn't be moved (no month tab for that date)`, 5000);
@@ -1570,7 +1912,7 @@ async function moveRows(m, row, desc, amt, note, scope, newSerial, opts = {}){
 
 /* ---------- render ---------- */
 function render(){
-  renderQueue(); renderMonths(); renderHero(); if (!$("#calc").innerHTML) renderCalc(); $("#periods").innerHTML = ""; renderView();
+  renderQueue(); renderMonths(); renderHero(); if (!$("#calc").innerHTML) renderCalc(); if (calOK && !$("#calbox").innerHTML) renderCal(); $("#periods").innerHTML = ""; renderView();
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === S.view));
   $("#fab").hidden = !mcp || !!(S.err && !S.month);
   $("#foot").innerHTML = S.loadedAt ? `<span class="livefrom">Live from “${esc(S.title || "your sheet")}” · </span><button class="updbtn" id="btnRefresh" aria-label="Refresh now"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>${S.refreshing ? "Updating…" : "Updated " + S.loadedAt.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}</button> · <a href="https://docs.google.com/spreadsheets/d/${esc(S.id)}/edit" target="_blank" rel="noopener">Open sheet</a>` : "";
@@ -1613,7 +1955,8 @@ function renderHero(){
     pay: pill ? `<div class="pills">${pill}</div>` : `<div class="hp-empty">No more paychecks on this month's tab.</div>`,
     cleared: clearedLine(),
     month: `<div class="stats">
-      <div class="stat"><small>Month end</small><b class="${m.sum.ending < 0 ? "neg" : ""}">${money(m.sum.ending)}</b></div>
+      ${(() => { const o = monthEndOutlook(m), lv = o ? o.level : (m.sum.ending < getCushion() ? "bad" : "ok");
+        return `<button class="stat statbtn" id="btnMonthEnd"><small>Month end ›</small><b class="${lv === "bad" ? "neg" : lv === "warn" ? "warnc" : ""}">${money(m.sum.ending)}</b></button>`; })()}
       <div class="stat"><small>${inMonth ? "Low ahead" : "Lowest"}</small><b class="${low < 300 ? "neg" : ""}">${money(low)}</b></div>
       <div class="stat"><small>Savings</small><b>${money(m.sum.saveEnd)}</b></div>
       ${ss ? `<button class="stat statbtn" id="btnSafe"><small>Safe to spend ›</small><b class="${ss.short ? "neg" : "safeval"}">${money(ss.safe)}</b></button>` : ""}
@@ -1658,10 +2001,11 @@ function renderView(){
   if (S.view === "insights") {
     const sub = S.ins || "overview";
     v.innerHTML += `<div class="seg-sm inseg">${[["overview","Overview"],["spending","Spending"],["savings","Savings"]].map(([k, l]) => `<button type="button" data-ins="${k}" class="${k === sub ? "on" : ""}">${l}</button>`).join("")}</div>`;
-    if (sub === "overview") v.innerHTML += tilesHTML();
+    if (sub === "overview") v.innerHTML += overviewHTML();
     if (sub === "spending") v.innerHTML += logHTML("spend");
     if (sub === "savings") v.innerHTML += logHTML("save");
   }
+  if (S.view === "affirm") v.innerHTML += affirmHTML();
   if (S.view === "uncleared") v.innerHTML += unclearedHTML();
   setBar(false); fitTimeline();
 }
@@ -1781,9 +2125,11 @@ function addSheet(type){
       <label class="field"><span>Date</span><input id="fDate" type="date" value="${serialToIso(todaySerial())}" required></label>
       ${type !== "savings" ? `<div class="field"><span>Bank status</span><div class="seg-sm" id="clrSeg"><button type="button" data-clrset="0" class="on">Not cleared yet</button><button type="button" data-clrset="1">Already cleared</button></div></div>` : ""}
       ${extra ? `<div class="field"><span>Repeats</span><div class="seg-sm" id="arepSeg">${[["never","Never"],["weekly","Weekly"],["biweekly","Every 2 weeks"],["monthly","Monthly"]].map(([v, l]) => `<button type="button" data-arep="${v}" class="${v === "never" ? "on" : ""}">${l}</button>`).join("")}</div></div>
-      <div class="field" id="arepFor" hidden><span>For how long</span><div class="seg-sm" id="arepForSeg">${[[3,"3 months"],[6,"6 months"],[12,"1 year"],["all","Until sheet ends"]].map(([v, l]) => `<button type="button" data-arepfor="${v}" class="${v === "all" ? "on" : ""}">${l}</button>`).join("")}</div>
+      <div class="field" id="arepFor" hidden><span>For how long</span><div class="seg-sm" id="arepForSeg">${[[3,"3 months"],[6,"6 months"],[12,"1 year"],["all","Until sheet ends"],["date","Until a date"]].map(([v, l]) => `<button type="button" data-arepfor="${v}" class="${v === "all" ? "on" : ""}">${l}</button>`).join("")}</div>
+        <label class="field" id="arepUntilBox" hidden style="margin-top:8px"><span>Last one on or before</span><input id="fUntil" type="date"></label>
         <p class="hint" id="arepHint" style="margin-top:6px"></p></div>` : ""}
       ${extra ? `<label class="field"><span>Note (optional)</span><input id="fNote" placeholder="e.g. Weekly, Amazon"></label>` : ""}
+      ${type === "bill" && calOK ? `<label class="radio"><input type="checkbox" id="fToCal"><span><b>Also add to my Bills calendar</b><br><small class="hint">As “Name - $amount”, repeating the same way.</small></span></label>` : ""}
       <p class="hint">${type === "expense" ? "Goes on your Spending Log — it counts toward that week's Everyday spending."
         : type === "savings" ? "Goes on your Savings Log — it comes out of checking and adds to savings."
         : "Goes in on the right day of that month's tab; running balances recalc in the sheet."}</p>
@@ -1796,17 +2142,19 @@ function addSheet(type){
 // the Repeats choice on the Add bill / Add income screen
 function addRepeat(){
   const on = document.querySelector("#arepSeg button.on"); if (!on || on.dataset.arep === "never") return null;
-  const f = document.querySelector("#arepForSeg button.on").dataset.arepfor;
-  return {freq: on.dataset.arep, months: f === "all" ? "all" : +f};
+  const f = document.querySelector("#arepForSeg button.on").dataset.arepfor, u = $("#fUntil");
+  return {freq: on.dataset.arep, months: f === "all" || f === "date" ? f : +f, until: f === "date" && u && u.value ? isoToSerial(u.value) : null};
 }
 function drawAddRepeat(){
   const box = $("#arepFor"); if (!box) return;
   const r = addRepeat(); box.hidden = !r; if (!r) return;
+  $("#arepUntilBox").hidden = r.months !== "date";
+  if (r.months === "date" && !r.until) { $("#arepHint").innerHTML = "Pick the date of the last one (for example an Affirm plan's final payment)."; return; }
   const start = $("#fDate").value ? isoToSerial($("#fDate").value) : todaySerial();
-  const dates = repeatDates(start, r.freq, r.months), word = $("#addForm").dataset.type === "income" ? "income entr" : "bill";
+  const dates = repeatDates(start, r.freq, r.months, r.until), word = $("#addForm").dataset.type === "income" ? "income entr" : "bill";
   const plural = n => word === "bill" ? (n === 1 ? "bill" : "bills") : (n === 1 ? "income entry" : "income entries");
   $("#arepHint").innerHTML = dates.length
-    ? `Adds <b>${dates.length} ${plural(dates.length)}</b>, ${esc(short(dates[0]))} through ${esc(short(dates[dates.length - 1]))} ${parts(dates[dates.length - 1]).y}.${r.months === "all" ? " After that the monthly job keeps it going in each new month." : ""}${dates.length > 20 ? " This many takes a minute or two." : ""}`
+    ? `Adds <b>${dates.length} ${plural(dates.length)}</b>, ${esc(short(dates[0]))} through ${esc(short(dates[dates.length - 1]))} ${parts(dates[dates.length - 1]).y}.${r.months === "all" ? " After that the monthly job keeps it going in each new month." : r.months === "date" && r.until > sheetEnd() ? ` Your sheet ends sooner, so the monthly job keeps adding it until ${esc(short(r.until))} ${parts(r.until).y}, then stops.` : ""}${dates.length > 20 ? " This many takes a minute or two." : ""}`
     : "That date isn't inside your month tabs.";
 }
 /* ---------- cleared early: offer to move it to today ---------- */
@@ -1835,8 +2183,9 @@ function earlyClearSheet(target, r, title){
 }
 /* ---------- make an expense repeating ---------- */
 function sheetEnd(){ const k = tabKey(S.tabs[S.tabs.length - 1].title); return toSerial(Math.floor(k / 12), k % 12 + 1, 0); }
-function repeatDates(start, freq, months){
-  const p = parts(start), end = months === "all" ? sheetEnd() : Math.min(sheetEnd(), toSerial(p.y, p.m + months, p.d) - 1), out = [];
+function repeatDates(start, freq, months, until){
+  const p = parts(start), out = [];
+  const end = months === "all" ? sheetEnd() : months === "date" ? (until ? Math.min(sheetEnd(), until) : start - 1) : Math.min(sheetEnd(), toSerial(p.y, p.m + months, p.d) - 1);
   if (freq === "monthly") {
     for (let k = 0; ; k++) {
       const last = toSerial(p.y, p.m + k + 1, 0), d = Math.min(toSerial(p.y, p.m + k, p.d), last);   // the 31st becomes the 30th in short months
@@ -1849,14 +2198,15 @@ function repeatSheet(r){
   const it = S.spend.items.find(i => i.r === r); if (!it) return;
   S.rep = {r, freq: "monthly", months: 12};
   const draw = () => {
-    const dates = repeatDates(it.serial, S.rep.freq, S.rep.months);
+    const dates = repeatDates(it.serial, S.rep.freq, S.rep.months, S.rep.until);
     const seg = (key, opts) => `<div class="seg-sm">${opts.map(([v, l]) => `<button type="button" data-rset="${key}:${v}" class="${String(S.rep[key]) === String(v) ? "on" : ""}">${l}</button>`).join("")}</div>`;
     openSheet(`<div class="shead"><button type="button" class="hbtn" data-close>Cancel</button><b>Make repeating</b><button type="submit" form="repForm" class="hbtn primary">Create</button></div>
       <form id="repForm" data-r="${r}" autocomplete="off">
         <label class="field"><span>Name</span><input id="fText" value="${esc(it.text)}"></label>
         <label class="field"><span>Amount each time</span><input class="money-in" id="fAmt" inputmode="decimal" value="${it.amt.toFixed(2)}"></label>
         <div class="field"><span>How often</span>${seg("freq", [["weekly","Weekly"],["biweekly","Every 2 weeks"],["monthly","Monthly"]])}</div>
-        <div class="field"><span>For how long</span>${seg("months", [[3,"3 months"],[6,"6 months"],[12,"1 year"],["all","Until sheet ends"]])}</div>
+        <div class="field"><span>For how long</span>${seg("months", [[3,"3 months"],[6,"6 months"],[12,"1 year"],["all","Until sheet ends"],["date","Until a date"]])}</div>
+        ${S.rep.months === "date" ? `<label class="field"><span>Last one on or before</span><input id="fUntil" type="date" value="${S.rep.until ? serialToIso(S.rep.until) : ""}" min="${serialToIso(it.serial)}"></label>` : ""}
         <p class="hint" style="font-size:14px">Adds <b>${dates.length} bill${dates.length === 1 ? "" : "s"}</b>${dates.length ? `, ${esc(short(dates[0]))} through ${esc(short(dates[dates.length - 1]))} ${parts(dates[dates.length - 1]).y}` : ""}. This ${esc(short(it.serial))} expense becomes the first one, so your balances don't change today. ${dates.length > 20 ? "This many takes a few minutes to write to the sheet." : ""}</p>
       </form>`);
   };
@@ -1891,13 +2241,13 @@ function rowSheet(r){
   const isInc = row.kind === "income", amt = isInc ? row.inc : row.bill;
   openSheet(`
     <div class="shead"><button type="button" class="hbtn" data-close>Cancel</button><b>Edit ${isInc ? "income" : "bill"}</b><button type="submit" form="rowForm" class="hbtn primary">Save</button></div>
-    <h2>${esc(row.desc || "Edit")}</h2>
-    <div class="hint" style="margin-top:-6px">${esc(row.serial != null ? dayLabel(row.serial) : "")} · ${isInc ? "Income" : "Bill"} · ${esc(m.title)}</div>
-    ${clearBlock("row", row.r, m.title, row.cleared)}
-    <form id="rowForm" data-r="${row.r}" autocomplete="off">
+    <form id="rowForm" data-r="${row.r}" data-kind="${row.kind}" autocomplete="off">
+      <input id="fText" class="titlein" value="${esc(row.desc)}" placeholder="Name" aria-label="Name">
+      <div class="hint" style="margin-top:-2px">${esc(row.serial != null ? dayLabel(row.serial) : "")} · ${esc(m.title)}</div>
+      ${clearBlock("row", row.r, m.title, row.cleared)}
+      <div class="field"><span>Type</span><div class="seg-sm" id="kindSeg"><button type="button" data-kindset="bill" class="${isInc ? "" : "on"}">Bill</button><button type="button" data-kindset="income" class="${isInc ? "on" : ""}">Income</button></div></div>
       <label class="field"><span>Amount</span><input class="money-in" id="fAmt" inputmode="decimal" value="${amt ? amt.toFixed(2) : ""}" placeholder="$0.00"></label>
       <label class="field"><span>Date</span><input id="fDate" type="date" value="${row.serial != null ? serialToIso(row.serial) : ""}"></label>
-      <label class="field"><span>Description</span><input id="fText" value="${esc(row.desc)}"></label>
       <label class="field"><span>Note</span><input id="fNote" value="${esc(row.note)}"></label>
       <div class="field"><span>Apply changes to</span></div>
       <label class="radio"><input type="radio" name="scope" value="one" checked><span><b>Just this once</b><br><small class="hint">Only ${esc(row.serial != null ? short(row.serial) : "this one")}</small></span></label>
@@ -1909,12 +2259,11 @@ function logSheet(which, r){
   const isSpend = which === "spend", log = isSpend ? S.spend : S.save, it = log.items.find(i => i.r === r); if (!it) return;
   openSheet(`
     <div class="shead"><button type="button" class="hbtn" data-close>Cancel</button><b>${isSpend ? "Edit expense" : "Edit savings move"}</b><button type="submit" form="logForm" class="hbtn primary">Save</button></div>
-    <h2>${esc(it.text || (isSpend ? "Expense" : "Savings move"))}</h2>
-    ${isSpend ? clearBlock("log", r, null, it.cleared) : ""}
-    ${isSpend ? `<button type="button" class="btn repeatbtn" data-repeat="${r}">↻ Make this repeating</button>` : ""}
     <form id="logForm" data-log="${which}" data-r="${r}" autocomplete="off">
+      <input id="fText" class="titlein" value="${esc(it.text)}" placeholder="${isSpend ? "What was it?" : "Note"}" aria-label="${isSpend ? "What" : "Note"}">
+      ${isSpend ? clearBlock("log", r, null, it.cleared) : ""}
+      ${isSpend ? `<button type="button" class="btn repeatbtn" data-repeat="${r}">↻ Make this repeating</button>` : ""}
       <label class="field"><span>Amount${isSpend ? "" : " (negative = taken out of savings)"}</span><input class="money-in" id="fAmt" inputmode="decimal" value="${it.amt.toFixed(2)}"></label>
-      <label class="field"><span>${isSpend ? "What" : "Note"}</span><input id="fText" value="${esc(it.text)}"></label>
       <label class="field"><span>Date</span><input id="fDate" type="date" value="${serialToIso(it.serial)}"></label>
       <div class="btns"><button type="button" class="btn danger" id="btnRemove" style="flex:1">Delete</button></div>
     </form>`);
@@ -1979,6 +2328,17 @@ document.addEventListener("click", e => {
   if (t.dataset.add) return S.month && addSheet(t.dataset.add);
   if (t.dataset.type) { lsSet("cf_lasttype", t.dataset.type); const amt = $("#fAmt") && $("#fAmt").value; addSheet(t.dataset.type); if (amt) $("#fAmt").value = amt; return; }
   if (t.dataset.chip != null) { $("#fText").value = t.dataset.chip; return; }
+  if (t.id === "btnMonthEnd" || t.id === "btnMonthEnd2") return monthEndSheet();
+  if (t.dataset.affx != null) { lsSet("cf_affx", t.dataset.affx); return renderView(); }
+  if (t.dataset.affpay) return affirmPaySheet(t.dataset.affpay, t.dataset.affamt);
+  if (t.dataset.affset) { $("#fAmt").value = t.dataset.affset; return; }
+  if (t.dataset.calnav) { const p = parts(S.calMonth != null ? S.calMonth : todaySerial()); S.calMonth = toSerial(p.y, p.m + +t.dataset.calnav, 1); renderCal(); return loadCal(); }
+  if (t.id === "calAdd") return calSheet();
+  if (t.dataset.calev) return calSheet(t.dataset.calev, t.dataset.caldate);
+  if (t.id === "calDel") { const f = $("#calForm"); return calDelSheet(f.dataset.id, f.dataset.date, f.dataset.repeats === "1"); }
+  if (t.dataset.caldel) return calWrite({type:"caldel", id: t.dataset.id, date: t.dataset.date, scope: t.dataset.caldel}, "Deleting", "Deleted from your Bills calendar");
+  if (t.dataset.crep != null) { document.querySelectorAll("#crepSeg button").forEach(b => b.classList.toggle("on", b === t)); $("#cUntilBox").hidden = t.dataset.crep === "never"; return; }
+  if (t.dataset.kindset != null) { document.querySelectorAll("#kindSeg button").forEach(b => b.classList.toggle("on", b === t)); return; }
   if (t.dataset.arep != null) { document.querySelectorAll("#arepSeg button").forEach(b => b.classList.toggle("on", b === t)); drawAddRepeat(); return; }
   if (t.dataset.arepfor != null) { document.querySelectorAll("#arepForSeg button").forEach(b => b.classList.toggle("on", b === t)); drawAddRepeat(); return; }
   if (t.dataset.clrset != null) { document.querySelectorAll("#clrSeg button").forEach(b => b.classList.toggle("on", b === t)); return; }
@@ -2007,7 +2367,7 @@ document.addEventListener("click", e => {
   if (t.dataset.repeat) return repeatSheet(+t.dataset.repeat);
   if (t.dataset.rset) {
     const [k, v] = t.dataset.rset.split(":"); const keep = {text: $("#fText").value, amt: $("#fAmt").value};
-    S.rep[k] = v === "all" ? "all" : (isNaN(+v) ? v : +v); S.rep.draw(); $("#fText").value = keep.text; $("#fAmt").value = keep.amt; return;
+    S.rep[k] = v === "all" || v === "date" ? v : (isNaN(+v) ? v : +v); S.rep.draw(); if (k === "months" && v === "date" && $("#fUntil")) $("#fUntil").focus(); $("#fText").value = keep.text; $("#fAmt").value = keep.amt; return;
   }
   if (t.dataset.unc) {
     const r = +t.dataset.r, title = t.dataset.title;
@@ -2030,14 +2390,34 @@ document.addEventListener("click", e => {
       return run("Deleting", () => deleteLog(which === "spend" ? "Spending Log" : "Savings Log", it), "Deleted"); }
   }
 });
-document.addEventListener("input", e => { if (e.target.id === "fDate" && $("#arepSeg")) drawAddRepeat(); });
-document.addEventListener("change", e => { if (e.target.id === "fDate" && $("#arepSeg")) drawAddRepeat(); if (e.target.id === "fShowKey") $("#fKey").type = e.target.checked ? "text" : "password"; });
+document.addEventListener("input", e => { if ((e.target.id === "fDate" || e.target.id === "fUntil") && $("#arepSeg")) drawAddRepeat(); });
+document.addEventListener("change", e => {
+  if ((e.target.id === "fDate" || e.target.id === "fUntil") && $("#arepSeg")) drawAddRepeat();
+  if (e.target.id === "fUntil" && $("#repForm") && S.rep) { S.rep.until = e.target.value ? isoToSerial(e.target.value) : null; const keep = {text: $("#fText").value, amt: $("#fAmt").value}; S.rep.draw(); $("#fText").value = keep.text; $("#fAmt").value = keep.amt; } if (e.target.id === "fShowKey") $("#fKey").type = e.target.checked ? "text" : "password"; });
 document.addEventListener("submit", e => {
   e.preventDefault();
   const f = e.target;
   const bad = ["#fAmt", "#fGoal", "#fCushion"].map(id => $(id)).find(el => el && el.value.trim() !== "" && !moneyOK(el.value));
   if (bad) { toast("That amount doesn't look right — use numbers like 45.99", 4000); bad.focus(); return; }
   const amtRaw = $("#fAmt") ? parseMoney($("#fAmt").value) : 0;
+  if (f.id === "calForm") {
+    const name = $("#fText").value.trim(); if (!name) { toast("Give it a name"); return; }
+    const title = calTitle(name, amtRaw ? Math.abs(amtRaw) : null), note = $("#fNote").value.trim(), date = $("#fDate").value;
+    if (!date) { toast("Pick a date"); return; }
+    if (f.dataset.id) { const sc = f.querySelector("input[name=cscope]:checked");
+      return calWrite({type:"calupd", input:{id: f.dataset.id, date: f.dataset.date, title, note, newDate: date, scope: sc ? sc.value : "one"}}, "Saving", "Calendar updated"); }
+    const rp = document.querySelector("#crepSeg button.on").dataset.crep, u = $("#fUntil").value;
+    return calWrite({type:"caladd", input:{title, date, note, repeat: rp, until: rp !== "never" && u ? u : "", opId: newOpId()}}, "Adding", "Added to your Bills calendar");
+  }
+  if (f.id === "affForm") {
+    const p = S.affirm.plans.find(x => x.id === f.dataset.plan); if (!p) return;
+    const amt = Math.abs(amtRaw), date = $("#fDate").value || serialToIso(todaySerial());
+    if (!amt) { toast("Enter an amount"); return; }
+    if (amt > p.balance + 0.005) { toast(`That's more than the ${money(p.balance)} balance`, 4000); return; }
+    return submitOp({type:"affirmpay", planId: p.id, name: p.name, payment: p.payment, amt, serial: isoToSerial(date), date, note: $("#fNote").value.trim(),
+      timeline: $("#fAffTl").checked && Math.abs(amt - p.payment) >= 0.005, removeLater: $("#fAffRm").checked && amt >= p.balance - 0.005, regular: Math.abs(amt - p.payment) < 0.005},
+      "Recording payment", amt >= p.balance - 0.005 ? `${p.name} paid off 🎉` : `Recorded ${money(amt)}`);
+  }
   if (f.id === "planForm") {
     lsSet(akey("cf_goal"), String(Math.max(0, parseMoney($("#fGoal").value))));
     lsSet(akey("cf_cushion"), String(Math.max(0, parseMoney($("#fCushion").value))));
@@ -2068,30 +2448,37 @@ document.addEventListener("submit", e => {
     if (type === "savings") { const out = document.querySelector("#dir button.on").dataset.dir === "out";
       return submitOp({type:"log", tab:"Savings Log", serial, text: text || (out ? "from savings" : "moved to savings"), amt: out ? -amt : amt}, "Saving", out ? `Pulled ${money(amt)} from savings` : `Moved ${money(amt)} to savings`); }
     const rp = (type === "income" || type === "bill") ? addRepeat() : null;
+    const cal = type === "bill" && $("#fToCal") && $("#fToCal").checked
+      ? {title: calTitle(text || "Bill", amt), date: serialToIso(serial), note, repeat: rp ? rp.freq : "never", until: rp && rp.until ? serialToIso(rp.until) : (rp && rp.months !== "all" ? serialToIso(repeatDates(serial, rp.freq, rp.months).slice(-1)[0] || serial) : "")} : null;
     if (rp) {
-      const dates = repeatDates(serial, rp.freq, rp.months);
+      if (rp.months === "date" && !rp.until) { toast("Pick the last date"); return; }
+      const dates = repeatDates(serial, rp.freq, rp.months, rp.until);
       if (!dates.length) { toast("That date isn't inside your month tabs"); return; }
       const kind = type, desc = text || (type === "income" ? "Extra income" : "Bill");
       const word = type === "income" ? (dates.length === 1 ? "income entry" : "income entries") : (dates.length === 1 ? "bill" : "bills");
-      return submitOp({type:"repeat", kind, desc, amt, note: note || {weekly:"Weekly", biweekly:"Every 2 weeks", monthly:"Monthly"}[rp.freq], dates, cleared},
+      let rnote = note || {weekly:"Weekly", biweekly:"Every 2 weeks", monthly:"Monthly"}[rp.freq];
+      if (rp.until) rnote += " · ends " + serialToUS(rp.until);   // the monthly job reads this and stops after that date
+      return submitOp({type:"repeat", kind, desc, amt, note: rnote, dates, cleared, cal},
         `Adding ${dates.length} ${word}`, `Added ${dates.length} repeating ${word}`);
     }
     if (type === "income") return submitOp({type:"item", kind:"income", serial, desc: text || "Extra income", amt, note, cleared}, "Adding income", `Added +${money(amt)}`);
-    if (type === "bill") return submitOp({type:"item", kind:"bill", serial, desc: text || "Bill", amt, note, cleared}, "Adding bill", `Added ${money(amt)} bill`);
+    if (type === "bill") return submitOp({type:"item", kind:"bill", serial, desc: text || "Bill", amt, note, cleared, cal}, "Adding bill", `Added ${money(amt)} bill`);
   }
   if (f.id === "rowForm") {
     const row = S.month.rows.find(x => x.r === +f.dataset.r), scope = f.querySelector("input[name=scope]:checked").value;
     const desc = $("#fText").value.trim() || row.desc, note = $("#fNote").value.trim();
     const newSerial = $("#fDate") && $("#fDate").value ? isoToSerial($("#fDate").value) : row.serial;
-    return submitOp({type:"row", title:S.month.title, r:row.r, serial:row.serial, origDesc:row.desc, desc, amt:Math.abs(amtRaw), note, scope, newSerial},
+    const ks = document.querySelector("#kindSeg button.on"), newKind = ks ? ks.dataset.kindset : row.kind;
+    return submitOp({type:"row", title:S.month.title, r:row.r, serial:row.serial, origDesc:row.desc, desc, amt:Math.abs(amtRaw), note, scope, newSerial, newKind: newKind !== row.kind ? newKind : undefined},
       newSerial !== row.serial ? (scope === "future" ? "Moving every later one" : "Moving") : (scope === "future" ? "Updating every later one" : "Saving"), "Saved");
   }
   if (f.id === "repForm") {
     const it = S.spend.items.find(i => i.r === +f.dataset.r); if (!it) return;
-    const dates = repeatDates(it.serial, S.rep.freq, S.rep.months);
+    if (S.rep.months === "date" && !S.rep.until) { toast("Pick the last date"); return; }
+    const dates = repeatDates(it.serial, S.rep.freq, S.rep.months, S.rep.until);
     if (!dates.length) { toast("No dates fall inside your month tabs"); return; }
     const text = $("#fText").value.trim() || it.text, amt = Math.abs(amtRaw);
-    const note = {weekly:"Weekly", biweekly:"Every 2 weeks", monthly:"Monthly"}[S.rep.freq];
+    const note = {weekly:"Weekly", biweekly:"Every 2 weeks", monthly:"Monthly"}[S.rep.freq] + (S.rep.months === "date" && S.rep.until ? " · ends " + serialToUS(S.rep.until) : "");
     return submitOp({type:"makerepeat", r: it.r, origText: it.text, text, amt, note, dates, cleared: it.cleared}, `Creating ${dates.length} bills`, "Repeating bills added");
   }
   if (f.id === "logForm") {

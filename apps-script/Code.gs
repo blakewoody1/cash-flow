@@ -4,11 +4,10 @@
  *
  * Cash Flow — Apps Script for your "Cash Flow" Google Sheet
  *
- * This one script does two jobs:
- *   1. Takes entries from your iPhone Shortcuts (Log Expense, Log Savings, Sync Cash Flow).
- *   2. Lets the Cash Flow web app read and update the sheet.
+ * Lets the Cash Flow web app read and update your sheets, your Bills calendar and your Affirm tracker.
+ * (The Log Expense / Log Savings Shortcuts were retired Nov 7, 2026: everything goes through the app.)
  *
- * Both use the same password (KEY below). After changing anything here:
+ * The app sends the password (KEY below) with every request. After changing anything here:
  *   Save → Deploy → Manage deployments → ✎ (pencil) → Version: New version → Deploy.
  *   (That keeps the same web app URL, so nothing else needs a new address.)
  *
@@ -18,6 +17,8 @@
  *   - it can only write to month tabs ("Nov 2026") and the Spending / Savings Log, columns A–I, a few rows at a time
  *   - formulas are only the running-balance and total formulas the app uses; anything else is saved as plain text
  *   - new rows are added in one step here, and each change has an ID so a retry never adds it twice
+ *   - calendar changes only touch the Bills calendar; Affirm changes only update a plan's balance and add to Payment History
+ *   - after 30 wrong keys in 10 minutes it stops answering for a while, and the Access log keeps only the last 500 lines
  *
  * Keeping the sheets current (runs by itself once set up):
  *   - On the 1st of every month it adds month tabs so there are always about 14 months ahead,
@@ -34,6 +35,10 @@ const SHEETS = {
   '14yvG4FmByEp2Te4gIPQ5FPQ2n6hwSN-quB7b95WRQ1U': 'Cash Flow',
   '109ZOrysstYv1adeMnFclmQD_dmK92RVXOx0kcpql18E': 'WNC'
 };
+
+// Bills calendar (Google Calendar) and the Affirm Payment Plans Tracker sheet
+const BILLS_CAL = '8f3aaa334c8bf14773c60647529fdf1dba99beedcdaf2cce6ff0a94646347551@group.calendar.google.com';
+const AFFIRM = '1U3zL_us7_RUKxhL_WSevIIYmKSWRL8p02rCdlJGJTnw';
 
 const MONTHS_AHEAD = 14;    // keep month tabs this many months past the current month
 const KEEP_YEARS_BACK = 1;  // archive month tabs and log entries from before January of last year
@@ -52,6 +57,7 @@ function logBad_(source, detail) {
     const ss = SpreadsheetApp.getActive();
     let sh = ss.getSheetByName('Access log');
     if (!sh) { sh = ss.insertSheet('Access log'); sh.appendRow(['Time', 'Source', 'What was tried', 'Result']); sh.setFrozenRows(1); }
+    if (sh.getLastRow() > 500) sh.deleteRows(2, sh.getLastRow() - 500);
     sh.appendRow([new Date(), source, String(detail || '').slice(0, 60), 'Refused: wrong key']);
   } catch (err) { /* never let logging break a request */ }
 }
@@ -64,49 +70,20 @@ function doGet() {
 function doPost(e) {
   const body = (e && e.postData && e.postData.contents) || '';
   let req = null;
-  try { req = JSON.parse(body); } catch (err) { /* not one JSON object: it's from the Shortcuts */ }
+  try { req = JSON.parse(body); } catch (err) { /* not JSON */ }
   if (req && req.tool) return json_(api_(req));
-  return shortcutLog_(body);
+  return json_({ error: 'Not a Cash Flow app request.' });
 }
 
 function json_(o) {
   return ContentService.createTextOutput(JSON.stringify(o)).setMimeType(ContentService.MimeType.JSON);
 }
 
-/* ---------- 1. Shortcuts: one JSON entry per line ---------- */
-function shortcutLog_(contents) {
-  const lock = LockService.getScriptLock(); lock.waitLock(20000);
-  try {
-    const out = [], bad = [];
-    const byName = name => { const id = Object.keys(SHEETS).filter(k => SHEETS[k].toLowerCase() === String(name).toLowerCase())[0]; return id ? SpreadsheetApp.openById(id) : null; };
-    const text = contents.replace(/[“”„″]/g, '"').replace(/[‘’]/g, "'");
-    text.split('\n').map(s => s.trim()).filter(Boolean).forEach(line => {
-      let d;
-      try { d = JSON.parse(line); } catch (err) { bad.push(line.slice(0, 40)); return; }
-      if (d.key !== KEY) { bad.push('wrong key'); logBad_('Shortcut', (d.type || '') + ' ' + (d.what || '')); return; }
-      const ss = (d.account && byName(d.account)) || SpreadsheetApp.getActive();
-      const sh = ss.getSheetByName(d.type === 'savings' ? 'Savings Log' : 'Spending Log');
-      if (d.id) {
-        const n = sh.getLastRow();
-        const ids = n > 1 ? sh.getRange(2, 4, n - 1, 1).getValues().flat().map(String) : [];
-        if (ids.includes(String(d.id))) return;
-      }
-      const now = new Date();
-      let day = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const p = String(d.date || '').split('/');
-      if (p.length === 3) day = new Date(+p[2], +p[0] - 1, +p[1]);
-      sh.appendRow([day, safeText_(String(d.what || '')), Number(d.amount), d.id || '']);
-      out.push(d.what + ' $' + d.amount);
-    });
-    let msg = out.length ? 'Logged ' + out.join(', ') : (bad.length ? "Couldn't read" : 'Nothing new');
-    if (bad.length) msg += ' (skipped: ' + bad.join(' | ') + ')';
-    return ContentService.createTextOutput(msg);
-  } finally { lock.releaseLock(); }
-}
-
 /* ---------- 2. Web app: small read/write API ---------- */
 function api_(req) {
-  if (req.key !== KEY) { logBad_('App', req.tool); return { error: 'Wrong key', code: 'needs_reauth' }; }
+  const cache = CacheService.getScriptCache(), tries = +(cache.get('bad') || 0);
+  if (tries >= 30) return { error: 'Too many wrong keys. Try again in 10 minutes.', code: 'needs_reauth' };
+  if (req.key !== KEY) { cache.put('bad', String(tries + 1), 600); logBad_('App', req.tool); return { error: 'Wrong key', code: 'needs_reauth' }; }
   const write = WRITES_.indexOf(req.tool) >= 0;
   const lock = write ? LockService.getScriptLock() : null;
   if (lock) lock.waitLock(30000);
@@ -118,9 +95,18 @@ function api_(req) {
     if (lock) lock.releaseLock();
   }
 }
-const WRITES_ = ['update_values', 'insert_dimension', 'add_item', 'add_log'];
+const WRITES_ = ['update_values', 'insert_dimension', 'add_item', 'add_log', 'cal_add', 'cal_update', 'cal_delete', 'affirm_pay'];
 function run_(tool, i, readOnly) {
   try {
+    if (/^cal_/.test(tool)) {
+      if (tool === 'cal_list') return { result: calList_(i) };
+      if (readOnly) throw new Error('Read-only request.');
+      if (tool === 'cal_add') return { result: calAdd_(i) };
+      if (tool === 'cal_update') return { result: calUpdate_(i) };
+      if (tool === 'cal_delete') return { result: calDelete_(i) };
+    }
+    if (tool === 'affirm_get') return { result: affirmGet_() };
+    if (tool === 'affirm_pay') { if (readOnly) throw new Error('Read-only request.'); return { result: affirmPay_(i) }; }
     const ss = sheetFor_(i.spreadsheetId);
     switch (tool) {
       case 'get_spreadsheet': return { result: getSpreadsheet_(ss, i) };
@@ -152,7 +138,7 @@ function usedPart_(rg) {
 function getSpreadsheet_(ss, i) {
   if (!i.includeGridData) {
     return {
-      properties: { title: ss.getName(), spreadsheetId: ss.getId(), features: ['batch', 'add_item', 'add_log', 'guard'] },
+      properties: { title: ss.getName(), spreadsheetId: ss.getId(), features: ['batch', 'add_item', 'add_log', 'guard', 'calendar', 'affirm'] },
       sheets: ss.getSheets().map(s => ({ properties: { title: s.getName(), sheetId: s.getSheetId() } }))
     };
   }
@@ -331,6 +317,112 @@ function addLog_(ss, i) {
   return { status: 'success', row: r };
 }
 
+/* ---------- 2c. Bills calendar ---------- */
+function billsCal_() {
+  const c = CalendarApp.getCalendarById(BILLS_CAL);
+  if (!c) throw new Error("Can't open the Bills calendar.");
+  return c;
+}
+function isoDate_(d, tz) { return Utilities.formatDate(d, tz, 'yyyy-MM-dd'); }
+function parseYmd_(s) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(String(s))) throw new Error('Bad date.');
+  const p = s.split('-'); return new Date(+p[0], +p[1] - 1, +p[2]);
+}
+// Events between two dates (yyyy-mm-dd), at most about 3 months at a time
+function calList_(i) {
+  const cal = billsCal_(), tz = Session.getScriptTimeZone();
+  const from = parseYmd_(i.from), to = parseYmd_(i.to);
+  if (to - from > 100 * 864e5 || to < from) throw new Error('Pick up to about 3 months.');
+  const end = new Date(to.getTime() + 864e5);
+  return { events: cal.getEvents(from, end).map(ev => ({
+    id: ev.getId(), title: ev.getTitle(), date: isoDate_(ev.isAllDayEvent() ? ev.getAllDayStartDate() : ev.getStartTime(), tz),
+    allDay: ev.isAllDayEvent(), note: ev.getDescription() || '', repeats: ev.isRecurringEvent()
+  })) };
+}
+// The calendar event matching an ID on a given day (one day of a repeating event)
+function findEvent_(id, date) {
+  const day = parseYmd_(date), evs = billsCal_().getEvents(day, new Date(day.getTime() + 864e5)).filter(ev => ev.getId() === id);
+  if (!evs.length) throw new Error("That calendar event isn't there anymore.");
+  return evs[0];
+}
+const clip_ = (v, n) => String(v == null ? '' : v).slice(0, n);
+function calAdd_(i) {
+  const cal = billsCal_(), title = clip_(i.title, 120).trim(), day = parseYmd_(i.date), note = clip_(i.note, 500);
+  if (!title) throw new Error('Give the event a name.');
+  if (i.opId) {   // already added on an earlier try?
+    const same = cal.getEvents(day, new Date(day.getTime() + 864e5)).filter(ev => ev.getTag('opId') === String(i.opId));
+    if (same.length) return { status: 'success', duplicate: true, id: same[0].getId() };
+  }
+  let ev;
+  if (i.repeat && i.repeat !== 'never') {
+    const r = CalendarApp.newRecurrence();
+    const rule = i.repeat === 'weekly' ? r.addWeeklyRule() : i.repeat === 'biweekly' ? r.addWeeklyRule().interval(2) : r.addMonthlyRule();
+    if (i.until) rule.until(parseYmd_(i.until));
+    ev = cal.createAllDayEventSeries(title, day, r, { description: note });
+  } else ev = cal.createAllDayEvent(title, day, { description: note });
+  if (i.opId) ev.setTag('opId', String(i.opId));
+  return { status: 'success', id: ev.getId() };
+}
+// scope 'one' = just that day; 'all' = the whole repeating series
+function calUpdate_(i) {
+  const ev = findEvent_(i.id, i.date), title = clip_(i.title, 120).trim(), note = clip_(i.note, 500);
+  if (!title) throw new Error('Give the event a name.');
+  if (i.scope === 'all' && ev.isRecurringEvent()) {
+    const series = ev.getEventSeries(); series.setTitle(title); series.setDescription(note);
+  } else {
+    ev.setTitle(title); ev.setDescription(note);
+    if (i.newDate && i.newDate !== i.date) ev.setAllDayDate(parseYmd_(i.newDate));
+  }
+  return { status: 'success' };
+}
+function calDelete_(i) {
+  const ev = findEvent_(i.id, i.date);
+  if (i.scope === 'all' && ev.isRecurringEvent()) ev.getEventSeries().deleteEventSeries(); else ev.deleteEvent();
+  return { status: 'success' };
+}
+
+/* ---------- 2d. Affirm Payment Plans Tracker ---------- */
+// Enter Plans: A Remaining Balance, B Plan / Merchant, C Next Due Date, D Payments Left, E APR, F Monthly Payment, G Plan ID, H Status, I Paid Off Date
+// Payment History: Payment ID, Plan ID, Merchant, Payment Date, Amount Paid, Balance Before, Balance After, Status, Note, Recorded At
+function affirmSheets_() {
+  const ss = SpreadsheetApp.openById(AFFIRM);
+  const plans = ss.getSheetByName('Enter Plans'), hist = ss.getSheetByName('Payment History');
+  if (!plans || !hist) throw new Error('The Affirm tracker needs "Enter Plans" and "Payment History" tabs.');
+  return { ss: ss, plans: plans, hist: hist, tz: ss.getSpreadsheetTimeZone() };
+}
+function affirmGet_() {
+  const a = affirmSheets_(), n = a.plans.getLastRow(), h = a.hist.getLastRow();
+  const rows = n > 1 ? a.plans.getRange(2, 1, n - 1, 9).getValues() : [];
+  const hist = h > 1 ? a.hist.getRange(Math.max(2, h - 49), 1, Math.min(50, h - 1), 10).getValues() : [];
+  const d = v => v instanceof Date ? isoDate_(v, a.tz) : String(v || '');
+  return {
+    plans: rows.map((r, k) => ({ row: k + 2, balance: +r[0] || 0, name: String(r[1] || ''), due: d(r[2]), left: +r[3] || 0,
+      apr: typeof r[4] === 'number' ? r[4] : parseFloat(String(r[4])) / 100 || 0, payment: +r[5] || 0, id: String(r[6] || ''), status: String(r[7] || ''), paidOff: d(r[8]) }))
+      .filter(p => p.name || p.balance),
+    history: hist.map(r => ({ id: String(r[0]), plan: String(r[1]), name: String(r[2]), date: d(r[3]), amount: +r[4] || 0, before: +r[5] || 0, after: +r[6] || 0, status: String(r[7]), note: String(r[8]) }))
+  };
+}
+// Records a payment toward one plan: lowers its balance, adds a Payment History line, marks it paid off at $0
+function affirmPay_(i) {
+  if (!i.opId) throw new Error('Missing change ID.');
+  const a = affirmSheets_(), amt = Math.round(Number(i.amount) * 100) / 100;
+  if (!isFinite(amt) || amt <= 0 || amt > 1e5) throw new Error('Bad amount.');
+  const h = a.hist.getLastRow(), pid = 'app:' + i.opId;
+  if (h > 1 && a.hist.getRange(2, 1, h - 1, 1).getValues().some(r => String(r[0]) === pid)) return { status: 'success', duplicate: true };
+  const n = a.plans.getLastRow(), rows = n > 1 ? a.plans.getRange(2, 1, n - 1, 9).getValues() : [];
+  const k = rows.findIndex(r => String(r[6]) === String(i.planId));
+  if (k < 0) throw new Error("Couldn't find that plan in the tracker.");
+  const r = k + 2, before = +rows[k][0] || 0, after = Math.max(0, Math.round((before - amt) * 100) / 100), pay = +rows[k][5] || 0;
+  if (amt > before + 0.005) throw new Error('That is more than the ' + rows[k][1] + ' balance ($' + before.toFixed(2) + ').');
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(String(i.date)) ? parseYmd_(i.date) : new Date();
+  a.plans.getRange(r, 1).setValue(after);
+  if (after <= 0) { a.plans.getRange(r, 4).setValue(0); a.plans.getRange(r, 8).setValue('PAID OFF'); a.plans.getRange(r, 9).setValue(date); }
+  else if (pay > 0) a.plans.getRange(r, 4).setValue(Math.ceil(after / pay - 1e-9));
+  a.hist.appendRow([pid, String(rows[k][6]), safeText_(String(rows[k][1])), date, amt, before, after, after <= 0 ? 'PAID OFF' : (i.kind === 'regular' ? 'PAYMENT' : 'EXTRA'), safeText_(clip_(i.note, 200)), new Date()]);
+  SpreadsheetApp.flush();
+  return { status: 'success', before: before, after: after, paidOff: after <= 0 };
+}
+
 /* ---------- 3. Keeping the sheets current ---------- */
 const MON_ = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const MONTH_NAME_ = ['January','February','March','April','May','June','July','August','September','October','November','December'];
@@ -416,6 +508,11 @@ function kind_(row) {
 }
 
 // Works out next month's rows from the latest month (and the one before it for the repeat spacing). No sheet access.
+// A bill or paycheck whose note says "ends 3/23/2028" isn't copied into months after that date
+function endsOn_(note) {
+  const m = /\bends\s+(\d{1,2})\/(\d{1,2})\/(\d{4})/i.exec(String(note || ''));
+  return m ? dayNum_(+m[3], +m[1] - 1, +m[2]) : null;
+}
 function planMonth_(last, prev, y, m) {
   const start = dayNum_(y, m, 1), end = dayNum_(y, m, daysIn_(y, m));
   const keyOf = r => r.desc + '|' + r.note + '|' + kind_(r);
@@ -434,7 +531,8 @@ function planMonth_(last, prev, y, m) {
     const days = g.prevDays.concat(g.rows.map(r => r.day)).sort((a, b) => a - b);
     const diffs = days.slice(1).map((d, i) => d - days[i]);
     const step = diffs.indexOf(7) >= 0 ? 7 : diffs.indexOf(14) >= 0 ? 14 : 0;
-    const add = (day, r) => out.push({ day: day, rank: g.kind === 'inc' ? 0 : 1, idx: g.idx, kind: g.kind, desc: r.desc, inc: r.inc, bill: r.bill, note: r.note, src: r.r });
+    const ends = endsOn_(lastRow.note);   // "ends 3/23/2028" in the note stops it after that date
+    const add = (day, r) => { if (ends != null && day > ends) return; out.push({ day: day, rank: g.kind === 'inc' ? 0 : 1, idx: g.idx, kind: g.kind, desc: r.desc, inc: r.inc, bill: r.bill, note: r.note, src: r.r }); };
     if (step) {
       let d = days[days.length - 1] + step;
       while (d < start) d += step;
