@@ -1648,15 +1648,15 @@ function affirmPlan(){
   if (first && ps0 && ps0.daily > 0) {
     const pace = ss && ss.days >= 14 ? ss.pace / 7 : null, floor = pace != null ? pace : ps0.daily * 0.6;
     const after = amt => { const q = planStats(amt); return q ? q.daily : -1; };
-    const line = (amt, d) => `Your spending room goes from ${money(ps0.daily)} to <b>${money(d)}/day</b> through ${esc(ps0.endLabel)}, still covering every bill, your savings goal and ${money(getCushion())} in checking${pace != null ? ` (you've averaged ${money(pace)}/day)` : ""}.`;
+    const line = (amt, d) => `Spending room: ${money(ps0.daily)} → <b>${money(d)}/day</b>${pace != null ? ` (you average ${money(pace)})` : ""}.`;
     const dFull = after(first.balance);
     if (dFull >= floor) tip = {plan: first, amount: first.balance, short: `pay off ${first.name} now`,
-      text: `Pay off <b>${esc(first.name)}</b> (${money(first.balance)}) today and free up ${money(first.payment)} a month. ${line(first.balance, dFull)}`};
+      text: `Pay off <b>${esc(first.name)}</b> (${money(first.balance)}) now → frees ${money(first.payment)}/mo. ${line(first.balance, dFull)}`};
     else {
       let lo = 0, hi = first.balance; for (let k = 0; k < 20; k++) { const mid = (lo + hi) / 2; if (after(mid) >= floor) lo = mid; else hi = mid; }
       const amt = Math.floor(lo / 5) * 5;
       if (amt >= 25) tip = {plan: first, amount: amt, short: `${money(amt)} extra fits now`,
-        text: `Paying it all off now would squeeze you to ${money(Math.max(0, dFull))}/day. <b>${money(amt)}</b> extra toward <b>${esc(first.name)}</b> fits: ${line(amt, after(amt))} ${money(first.balance - amt)} would be left on it.`};
+        text: `Put <b>${money(amt)}</b> toward <b>${esc(first.name)}</b> now (${money(first.balance - amt)} left). ${line(amt, after(amt))} Paying it all off: ${money(Math.max(0, dFull))}/day.`};
     }
   }
   return {active, extra, sim, base, total, monthly, tip};
@@ -1681,10 +1681,10 @@ function affirmHTML(){
     <div class="pmeta">${af.active.length ? `Paid off <b>${esc(af.sim.doneLabel)}</b> with ${money(x)}/mo extra · about ${money(af.sim.interest)} interest${x ? ` (${money(saved)} less and ${faster} month${faster === 1 ? "" : "s"} sooner than payments only)` : ""}` : "Everything is paid off 🎉"}</div>
     <div class="field" style="margin-top:10px"><span>Extra each month</span><div class="seg-sm">${[0, 50, 100, 200, 250].map(v => `<button type="button" data-affx="${v}" class="${v === x ? "on" : ""}">$${v}</button>`).join("")}</div></div>
   </div>`;
-  if (af.tip) html += `<div class="card pcard wide safe"><div class="ph"><b>Suggestion</b><small>Checked against your timeline, savings goal and ${money(getCushion())} buffer</small></div>
+  if (af.tip) html += `<div class="card pcard wide safe"><div class="ph"><b>Suggestion</b><small>Bills, savings goal and ${money(getCushion())} buffer covered through ${esc((planStats() || {}).endLabel || "")}</small></div>
     <div class="pmeta" style="font-size:15px">${af.tip.text}</div>
     <button class="btn primary" style="margin-top:10px;width:100%" data-affpay="${esc(af.tip.plan.id)}" data-affamt="${af.tip.amount.toFixed(2)}">Record ${money(af.tip.amount)} to ${esc(af.tip.plan.name)}</button></div>`;
-  else if (af.active.length) html += `<div class="card pcard wide"><div class="ph"><b>Suggestion</b></div><div class="pmeta">No room for an extra payment right now without squeezing your everyday spending before ${esc((planStats() || {}).endLabel || "next month")}. Stick with the regular payments; check back after payday.</div></div>`;
+  else if (af.active.length) html += `<div class="card pcard wide"><div class="ph"><b>Suggestion</b></div><div class="pmeta">No room for extra right now. Stick with regular payments and check after payday.</div></div>`;
   html += `<div class="card pcard wide"><div class="ph"><b>Snowball order</b><small>Smallest balance first · tap one to record a payment</small></div>
     ${af.active.map((p, i) => `<button class="affrow" data-affpay="${esc(p.id)}"><span class="affn">${i + 1}</span><span class="afft"><b>${esc(p.name)}</b><small>${money(p.payment)}/mo · ${(p.apr * 100).toFixed(2)}% · ${p.left} left · next ${esc(p.due ? short(isoToSerial(p.due)) : "—")}</small></span><span class="affr"><b>${money(p.balance)}</b><small>gone ${esc(af.sim.payoff[p.id] || "—")}</small></span></button>`).join("")}
   </div>`;
