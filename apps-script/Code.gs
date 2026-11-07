@@ -413,7 +413,7 @@ function affirmGet_() {
   const d = v => v instanceof Date ? isoDate_(v, a.tz) : String(v || '');
   return {
     plans: rows.map((r, k) => ({ row: k + 2, balance: +r[0] || 0, name: String(r[1] || ''), due: d(r[2]), left: +r[3] || 0,
-      apr: typeof r[4] === 'number' ? r[4] : parseFloat(String(r[4])) / 100 || 0, payment: +r[5] || 0, id: String(r[6] || ''), status: String(r[7] || ''), paidOff: d(r[8]) }))
+      apr: (v => v > 1 ? v / 100 : v)(typeof r[4] === 'number' ? r[4] : parseFloat(String(r[4])) / 100 || 0), payment: +r[5] || 0, id: String(r[6] || ''), status: String(r[7] || ''), paidOff: d(r[8]) }))
       .filter(p => p.name || p.balance),
     history: hist.map(r => ({ id: String(r[0]), plan: String(r[1]), name: String(r[2]), date: d(r[3]), amount: +r[4] || 0, before: +r[5] || 0, after: +r[6] || 0, status: String(r[7]), note: String(r[8]) }))
   };

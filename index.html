@@ -1657,11 +1657,13 @@ function affirmPlan(){
   }
   return {active, extra, sim, base, total, monthly, tip};
 }
+// The tracker stores APR as 11.99 (shown as "11.99%"), not 0.1199 — use a fraction everywhere in the app
+function fixAffirm(x){ if (x && x.plans) x.plans.forEach(p => { if (p.apr > 1) p.apr = p.apr / 100; }); return x; }
 async function loadAffirm(force){
   if (!affirmOK || (S.affirmLoading && !force)) return;
   S.affirmLoading = true;
-  try { const cached = await call("affirm_get", {}, true).catch(() => null); if (cached && !S.affirm) { S.affirm = cached; if (S.view === "affirm" || S.view === "insights") renderView(); } } catch(e) {}
-  try { S.affirm = await call("affirm_get", {}); S.affirmErr = null; } catch(e) { S.affirmErr = e; }
+  try { const cached = await call("affirm_get", {}, true).catch(() => null); if (cached && !S.affirm) { S.affirm = fixAffirm(cached); if (S.view === "affirm" || S.view === "insights") renderView(); } } catch(e) {}
+  try { S.affirm = fixAffirm(await call("affirm_get", {})); S.affirmErr = null; } catch(e) { S.affirmErr = e; }
   S.affirmLoading = false;
   if (S.view === "affirm" || S.view === "insights") renderView();
 }
