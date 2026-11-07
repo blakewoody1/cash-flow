@@ -592,6 +592,20 @@ a{color:var(--ink)}
   body.tlfix .tl{padding-bottom:calc(env(safe-area-inset-bottom) + 96px)}
   .toast{bottom:calc(env(safe-area-inset-bottom) + 100px)}
 }
+/* ---------- v19: calmer layout ---------- */
+.badge{display:inline-grid;place-items:center;min-width:18px;height:18px;padding:0 5px;margin-left:6px;border-radius:9px;background:var(--ink);color:var(--bg);font-size:11px;font-weight:700;vertical-align:1px}
+.badge[hidden]{display:none}
+.inseg{margin:0 0 12px}
+.pastrow{display:flex;align-items:center;justify-content:center;gap:4px;width:100%;min-height:44px;padding:10px;margin:6px 0 2px;border-radius:14px;font-size:14px;font-weight:600;color:var(--muted);border:1px dashed var(--line)}
+.pastrow:active{background:var(--chip)}
+.updbtn{display:inline-flex;align-items:center;gap:4px;padding:6px 4px;color:var(--muted);font-size:12px}
+.updbtn:active{color:var(--ink)}
+/* icons: grey for everything except money coming in */
+.item .dot,.k-spend .dot,.k-save .dot,.k-start .dot{background:var(--chip)}
+.item .dot::after,.k-spend .dot::after,.k-save .dot::after,.k-start .dot::after{background:var(--muted)}
+.k-income .dot{background:color-mix(in srgb,var(--green) 15%,transparent)} .k-income .dot::after{background:var(--green)}
+#tabs button span{white-space:nowrap}
+@media (min-width: 900px){ #tabs button{padding:0 22px} }
 </style>
 </head>
 <body>
@@ -600,7 +614,6 @@ a{color:var(--ink)}
     <h1><button class="icon menubtn" id="btnMenu" aria-label="Open menu" aria-expanded="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><button class="acctbtn" id="btnAcct" aria-label="Switch account"><span id="acctName">Cash Flow</span> <span class="caret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button></h1>
     <div class="tacts">
       <button class="bankbtn" id="btnBank" aria-label="Open your bank app"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/></svg>Bank</button>
-      <button class="icon" id="btnRefresh" aria-label="Refresh"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg></button>
       <button class="icon" id="btnSettings" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg></button>
     </div>
   </div>
@@ -612,15 +625,12 @@ a{color:var(--ink)}
   <div class="seg" id="tabs">
     <div class="dhead">Views</div>
     <button data-tab="timeline" class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Timeline</span></button>
-    <button data-tab="uncleared"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M9 12l2 2 4-4"/></svg><span>Uncleared</span></button>
-    <button data-tab="spending"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg><span>Spending</span></button>
-    <button data-tab="savings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="5" y="8" width="14" height="12" rx="3"/><path d="M8 4h8v4H8zM12 12v4"/></svg><span>Savings</span></button>
-    <button data-tab="summaries"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-9M12 20V5M19 20v-7"/></svg><span>Summaries</span></button>
+    <button data-tab="uncleared"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8"/><path d="M9 12l2 2 4-4"/></svg><span>Uncleared<b class="badge" id="uncBadge" hidden></b></span></button>
+    <button data-tab="insights"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-9M12 20V5M19 20v-7"/></svg><span>Insights</span></button>
   </div>
   <div id="view"></div>
 </div>
 <button class="fab" id="fab" aria-label="Add"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>
-<button class="totop" id="btnTop" aria-label="Back to top" hidden>↑ Top</button>
 <div class="scrim" id="scrim" hidden></div>
 <div class="sheet" id="sheet" hidden></div>
 <div class="toast" id="toast" hidden></div>
@@ -786,7 +796,7 @@ function tabForSerial(s){
   const p = parts(s), key = p.y*12 + p.m;
   const exact = S.tabs.find(t => tabKey(t.title) === key);
   if (exact) return exact.title;
-  if (key < tabKey(S.tabs[0].title)) return S.tabs[0].title;
+  if (S.tabs.length && key < tabKey(S.tabs[0].title)) return S.tabs[0].title;
   return null;
 }
 
@@ -939,7 +949,8 @@ async function toggleCleared(target, r, title){
 }
 
 /* ---------- uncleared list ---------- */
-function unclearedHTML(){
+function unclearedList(){ try { return unclearedItems_(); } catch(e){ return []; } }
+function unclearedItems_(){
   const T = todaySerial(), list = [], seenRow = new Set();
   const months = [...(S.periodMonths || [])];
   if (S.month && !months.some(m => m.title === S.month.title)) months.push(S.month);
@@ -958,6 +969,10 @@ function unclearedHTML(){
     list.push({s:it.serial, amt:-it.amt, desc:it.text || "Expense", sub:"Spending Log", kind:"spend", open:`data-unc="log" data-r="${it.r}"`});
   }
   list.sort((a, b) => b.s - a.s);
+  return list;
+}
+function unclearedHTML(){
+  const T = todaySerial(), list = unclearedItems_();
   const net = list.reduce((a, x) => a + x.amt, 0);
   const out = list.reduce((a, x) => a + (x.amt < 0 ? -x.amt : 0), 0), inn = list.reduce((a, x) => a + (x.amt > 0 ? x.amt : 0), 0);
   let html = `<div class="card hero" style="padding:14px 16px;margin-bottom:4px">
@@ -989,7 +1004,7 @@ function switchAccount(id){
   if (id === S.id || S.busy) { closeSheet(); return; }
   S.id = id; lsSet("cf_acct", id);
   S.tabs = []; S.month = null; S.periodMonths = null; S.spend = {items:[], lastRow:1}; S.save = {items:[], lastRow:1};
-  S.tlMonth = null; S.snapToday = true; S.err = null; S.title = "";
+  S.tlMonth = null; S.snapToday = true; S.err = null; S.title = ""; S.showPast = false;
   closeSheet(); renderAcct(); render();
   if (mcp) loadAll().then(() => toast("Switched to " + acctName(id)));
 }
@@ -1546,8 +1561,10 @@ function render(){
   renderQueue(); renderMonths(); renderHero(); if (!$("#calc").innerHTML) renderCalc(); $("#periods").innerHTML = ""; renderView();
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === S.view));
   $("#fab").hidden = !mcp || !!(S.err && !S.month);
-  $("#foot").innerHTML = S.loadedAt ? `<span class="livefrom">Live from “${esc(S.title || "your sheet")}” · </span>${S.refreshing ? "Updating… · " : ""}Updated ${S.loadedAt.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})} · <a href="https://docs.google.com/spreadsheets/d/${esc(S.id)}/edit" target="_blank" rel="noopener">Open sheet</a>` : "";
+  $("#foot").innerHTML = S.loadedAt ? `<span class="livefrom">Live from “${esc(S.title || "your sheet")}” · </span><button class="updbtn" id="btnRefresh" aria-label="Refresh now"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>${S.refreshing ? "Updating…" : "Updated " + S.loadedAt.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}</button> · <a href="https://docs.google.com/spreadsheets/d/${esc(S.id)}/edit" target="_blank" rel="noopener">Open sheet</a>` : "";
   $("#foot").innerHTML += `<div><button class="kbbtn" id="btnKeys" aria-label="Keyboard shortcuts">⌘</button></div>`;
+  const nu = S.month ? unclearedList().length : 0, bd = $("#uncBadge");
+  if (bd) { bd.hidden = !nu; bd.textContent = nu; }
 }
 function renderMonths(){
   const cur = S.month && S.month.title;
@@ -1615,7 +1632,7 @@ function renderView(){
     const tl = $("#tl");
     if (tl) {
       if (keep && keep.month === S.month.title) tl.scrollTop = keep.top;
-      else { const a = $("#tlAnchor"); tl.scrollTop = a ? Math.max(0, a.offsetTop - 4) : 0; }
+      else { const a = $("#tlAnchor"); tl.scrollTop = a && !$("#btnPast") ? Math.max(0, a.offsetTop - 4) : 0; }
       S.tlMonth = S.month.title; S.snapToday = false;
       const btn = $("#btnToday"), a = $("#tlAnchor");
       const upd8 = () => { if (!a) { btn.hidden = true; return; } const d = a.offsetTop - tl.scrollTop; btn.hidden = Math.abs(d) < 120; btn.textContent = d < 0 ? "↑ Today" : "↓ Today"; };
@@ -1623,9 +1640,13 @@ function renderView(){
       tl.addEventListener("scroll", () => { upd8(); const y = tl.scrollTop; barOnScroll(y, last, a ? a.offsetTop : 0); last = y; }, {passive:true}); upd8();
     }
   }
-  if (S.view === "spending") v.innerHTML += logHTML("spend");
-  if (S.view === "savings") v.innerHTML += logHTML("save");
-  if (S.view === "summaries") v.innerHTML += tilesHTML();
+  if (S.view === "insights") {
+    const sub = S.ins || "overview";
+    v.innerHTML += `<div class="seg-sm inseg">${[["overview","Overview"],["spending","Spending"],["savings","Savings"]].map(([k, l]) => `<button type="button" data-ins="${k}" class="${k === sub ? "on" : ""}">${l}</button>`).join("")}</div>`;
+    if (sub === "overview") v.innerHTML += tilesHTML();
+    if (sub === "spending") v.innerHTML += logHTML("spend");
+    if (sub === "savings") v.innerHTML += logHTML("save");
+  }
   if (S.view === "uncleared") v.innerHTML += unclearedHTML();
   setBar(false); fitTimeline();
 }
@@ -1674,7 +1695,12 @@ function timelineHTML(){
   const groups = []; for (const e of entries) { const g = groups[groups.length-1]; if (g && g.s === e.s) g.rows.push(e); else groups.push({s:e.s, rows:[e]}); }
   let out = "", todayDone = false;
   const hasToday = groups.some(g => g.s === T);
+  // earlier days fold behind one row (only when this month has today or later in it)
+  const pastN = groups.filter(g => g.s != null && g.s < T).length;
+  const fold = !S.showPast && pastN > 0 && groups.some(g => g.s != null && g.s >= T);
+  if (fold) out += `<button class="pastrow" id="btnPast">Show ${pastN} earlier day${pastN === 1 ? "" : "s"} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
   for (const g of groups){
+    if (fold && g.s != null && g.s < T) continue;
     // No entries dated today: drop a "Today" marker just before the first future day
     if (!todayDone && !hasToday && g.s != null && g.s > T && groups[0].s <= T) { out += `<div class="today" id="tlAnchor">Today · ${esc(dayLabel(T))}</div>`; todayDone = true; }
     const isToday = g.s === T;
@@ -1844,8 +1870,8 @@ function clearOnlySheet(target, r, title){
 }
 function rowSheet(r){
   const m = S.month, row = m.rows.find(x => x.r === r); if (!row) return;
-  if (row.kind === "spend") { S.view = "spending"; render(); window.scrollTo({top:0, behavior:"smooth"}); return; }
-  if (row.kind === "save") { if (row.bill) clearOnlySheet("row", row.r, m.title); else { S.view = "savings"; render(); } return; }
+  if (row.kind === "spend") { S.view = "insights"; S.ins = "spending"; render(); window.scrollTo({top:0, behavior:"smooth"}); return; }
+  if (row.kind === "save") { if (row.bill) clearOnlySheet("row", row.r, m.title); else { S.view = "insights"; S.ins = "savings"; render(); } return; }
   if (row.kind === "start") { toast(`Starting balance is set on the sheet${m.title === S.tabs[0].title ? " (cell B4)" : " from last month's ending balance"}.`, 4000); return; }
   const isInc = row.kind === "income", amt = isInc ? row.inc : row.bill;
   openSheet(`
@@ -1919,12 +1945,14 @@ document.addEventListener("click", e => {
   }
   if (t.id === "btnClearCache") { Object.keys(localStorage).filter(x => x.startsWith("cf_c:")).forEach(x => localStorage.removeItem(x)); toast("Saved offline data cleared — it refills next time you're online"); return; }
   if (t.id === "retry") { S.tabs = []; return loadAll(); }
-  if (t.dataset.month) { if (!$("#sheet").hidden) closeSheet(); return switchMonth(t.dataset.month); }
+  if (t.dataset.month) { if (!$("#sheet").hidden) closeSheet(); S.showPast = false; return switchMonth(t.dataset.month); }
   if (t.dataset.hero) { S.heroPanel = S.heroPanel === t.dataset.hero ? "" : t.dataset.hero; lsSet("cf_hero", S.heroPanel); renderHero(); return fitTimeline(); }
   if (t.id === "btnMonth") return monthSheet();
   if (t.id === "btnMenu") return setDrawer(!document.body.classList.contains("drawer"));
   if (t.id === "dscrim") return setDrawer(false);
   if (t.dataset.tab) { setDrawer(false); S.view = t.dataset.tab; return render(); }
+  if (t.dataset.ins) { S.ins = t.dataset.ins; return renderView(); }
+  if (t.id === "btnPast") { S.showPast = true; S.snapToday = true; return renderView(); }
   if (t.dataset.add) return S.month && addSheet(t.dataset.add);
   if (t.dataset.type) { lsSet("cf_lasttype", t.dataset.type); const amt = $("#fAmt") && $("#fAmt").value; addSheet(t.dataset.type); if (amt) $("#fAmt").value = amt; return; }
   if (t.dataset.chip != null) { $("#fText").value = t.dataset.chip; return; }
@@ -1937,7 +1965,6 @@ document.addEventListener("click", e => {
   if (t.id === "btnSync") return flushQueue(true);
   if (t.id === "btnPlan") return planSheet();
   if (t.id === "btnKeys") return keysSheet();
-  if (t.id === "btnTop") { window.scrollTo({top:0, behavior:"smooth"}); return; }
   if (t.id === "btnSafe") { openSheet(`<div class="pgrid">${safeHTML()}</div><div class="btns"><button type="button" class="btn" data-close>Close</button></div>`); return; }
   if (t.dataset.clr) {
     const wasOpen = !$("#sheet").hidden, box = t.closest(".cstat"), nowCleared = !(box && box.classList.contains("on"));
@@ -1965,7 +1992,7 @@ document.addEventListener("click", e => {
     if (title === S.month.title) { const row = S.month.rows.find(x => x.r === r); if (row && row.kind !== "save") return rowSheet(r); }
     return clearOnlySheet("row", r, title);
   }
-  if (t.id === "goSavings") { closeSheet(); S.view = "savings"; render(); return; }
+  if (t.id === "goSavings") { closeSheet(); S.view = "insights"; S.ins = "savings"; render(); return; }
   if (t.id === "btnToday") { const a = $("#tlAnchor"), tl = $("#tl"); if (a && tl) tl.scrollTo({top: Math.max(0, a.offsetTop - 4), behavior:"smooth"}); return; }
   if (t.dataset.qdel) {
     if (!t.classList.contains("armed")) { t.classList.add("armed"); t.textContent = "Discard?"; return; }
@@ -2291,8 +2318,6 @@ function setDrawer(open){
 })();
 
 /* ---------- back to top ---------- */
-const topBtn = () => { const b = $("#btnTop"); if (b) b.hidden = window.scrollY < 260; };
-window.addEventListener("scroll", topBtn, {passive:true});
 document.addEventListener("click", e => { if (e.target.closest("h1") && !e.target.closest("#btnAcct")) window.scrollTo({top:0, behavior:"smooth"}); });
 
 /* ---------- boot ---------- */
