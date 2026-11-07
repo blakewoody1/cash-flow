@@ -643,6 +643,10 @@ a{color:var(--ink)}
 .item .dot,.k-spend .dot,.k-save .dot,.k-start .dot{background:var(--chip)}
 .item .dot::after,.k-spend .dot::after,.k-save .dot::after,.k-start .dot::after{background:var(--muted)}
 .k-income .dot{background:color-mix(in srgb,var(--green) 15%,transparent)} .k-income .dot::after{background:var(--green)}
+.k-bill .dot,.k-spend .dot{background:color-mix(in srgb,var(--bill) 15%,transparent)} .k-bill .dot::after,.k-spend .dot::after{background:var(--bill)}
+.k-bill .amt b,.k-spend .amt b{color:var(--bill)}
+.k-save .dot{background:color-mix(in srgb,var(--save) 15%,transparent)} .k-save .dot::after{background:var(--save)}
+.k-save .amt b{color:var(--save)}
 #tabs button span{white-space:nowrap}
 @media (min-width: 900px){ #tabs button{padding:0 22px} }
 </style>
