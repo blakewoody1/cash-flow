@@ -10,8 +10,8 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Cash Flow">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="icon-180.png?v=4">
-<link rel="icon" type="image/png" href="icon-192.png?v=4">
+<link rel="apple-touch-icon" href="icon-180.png?v=5">
+<link rel="icon" type="image/png" href="icon-192.png?v=5">
 <title>Cash Flow</title>
 <style>
 :root{
@@ -648,6 +648,12 @@ a{color:var(--ink)}
 .k-save .dot{background:color-mix(in srgb,var(--save) 15%,transparent)} .k-save .dot::after{background:var(--save)}
 .k-save .amt b{color:var(--save)}
 #tabs button span{white-space:nowrap}
+/* the app icon, small, in the middle of the top bar (iPhone) or at the start of the view tabs (iPad) */
+.appmark{width:30px;height:30px;border-radius:22.5%;display:block;box-shadow:0 1px 4px rgba(0,0,0,.18)}
+.toprow .appmark{flex:none;margin:0 auto;pointer-events:none}   /* sits in the middle of the space between the account name and Bank, never on top of them */
+.tabmark{display:none}
+@media (max-width: 899px){ .toprow .appmark{width:28px;height:28px} }
+@media (min-width: 900px){ .toprow .appmark{display:none} .tabmark{display:block;flex:none;width:34px;height:34px;margin:0 6px 0 8px;align-self:center} }
 @media (min-width: 900px){ #tabs button{padding:0 22px} }
 </style>
 </head>
@@ -655,6 +661,7 @@ a{color:var(--ink)}
 <div class="wrap">
   <div class="toprow">
     <h1><button class="icon menubtn" id="btnMenu" aria-label="Open menu" aria-expanded="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><button class="acctbtn" id="btnAcct" aria-label="Switch account"><span id="acctName">Cash Flow</span> <span class="caret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button></h1>
+    <img class="appmark" id="appMark" alt="" aria-hidden="true">
     <div class="tacts">
       <button class="bankbtn" id="btnBank" aria-label="Open your bank app"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/></svg>Bank</button>
       <button class="icon" id="btnSettings" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
@@ -665,7 +672,7 @@ a{color:var(--ink)}
   <div id="leftcol"><div id="hero"></div><div class="foot" id="foot"></div><div id="calc"></div><div id="calbox" hidden></div></div>
   <div id="periods"></div>
   <div class="dscrim" id="dscrim" hidden></div>
-  <div class="seg" id="tabs">
+  <div class="seg" id="tabs"><img class="appmark tabmark" alt="" aria-hidden="true">
     <div class="dhead">Views</div>
     <button data-tab="timeline" class="on"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01"/></svg><span>Timeline</span></button>
     <button data-tab="insights"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20v-9M12 20V5M19 20v-7"/></svg><span>Insights</span></button>
@@ -810,6 +817,8 @@ const REQ = {
 // the Apps Script says whether it can answer several reads in one trip (newer versions list "batch")
 let batchOK = false;
 // newer Apps Script adds rows in one step on its side, and remembers each change's ID so a retry never adds it twice
+// the small in-app icon uses the same file as the home-screen icon, so a new icon shows up here automatically
+document.querySelectorAll(".appmark").forEach(img => { const l = document.querySelector('link[rel="apple-touch-icon"]'); img.src = l ? l.getAttribute("href") : "icon-180.png"; });
 let serverAdds = false, calOK = false, affirmOK = false;
 const newOpId = () => Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
 // One trip to the Apps Script for many reads; saves each answer like a normal read. Returns false if it couldn't.
