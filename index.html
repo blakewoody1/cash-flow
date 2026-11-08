@@ -702,6 +702,10 @@ a{color:var(--ink)}
 @media (max-width: 899px){ #tabs .ponly{display:flex} #tabs .dhead.ponly,#tabs .dsep.ponly{display:block} }
 .dacct small{margin-left:auto;font-size:13px;color:var(--accent);font-weight:700}
 /* v45 (iPhone): menu and + live on the top line of the balance card (left / right); the bottom buttons are gone and the timeline runs to the bottom */
+/* v46: iOS 26 gives a home-screen app a viewport one status bar short of the screen while the page is shorter than the screen
+   (WebKit bug 301108). Making the page that much taller gets the full screen, so the timeline can reach the bottom. */
+@media (display-mode: standalone){ html{min-height:min(100lvh, calc(100% + env(safe-area-inset-top)))} }
+html.standalone{min-height:min(100lvh, calc(100% + env(safe-area-inset-top)))}
 .hcorner{display:none}
 @media (max-width: 899px){
   .toprow,.fab{display:none !important}
@@ -2812,6 +2816,7 @@ function barOnScroll(y, last, todayY){
 let lastWin = 0;
 window.addEventListener("scroll", () => { const y = window.scrollY; if (!document.body.classList.contains("tlfix")) barOnScroll(y, lastWin, 120); lastWin = y; }, {passive:true});
 window.addEventListener("resize", () => fitTimeline());
+if (window.visualViewport) visualViewport.addEventListener("resize", () => fitTimeline());
 // v40: refit when the balance area above the timeline changes height (e.g. the "Updated" line wraps)
 if (window.ResizeObserver && $("#leftcol")) { let rh = 0; new ResizeObserver(() => { const h = $("#leftcol").offsetHeight; if (isPhone() && h !== rh) { rh = h; fitTimeline(); } }).observe($("#leftcol")); }
 
