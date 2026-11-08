@@ -2763,8 +2763,8 @@ const isPhone = () => window.innerWidth < 900;
 function fixBottomGap(){
   const r = document.documentElement, gap = screen.height - window.innerHeight;
   const standalone = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
-  if (standalone && window.innerWidth < 900 && window.innerHeight > window.innerWidth && gap > 20 && gap < 140) r.style.setProperty("--bb", (26 - gap) + "px");
-  else r.style.removeProperty("--bb");
+  // v44: turned off: iOS clips anything drawn in that strip, so the buttons were cut off. Kept for reference.
+  r.style.removeProperty("--bb");
 }
 function fitTimeline(){
   fixBottomGap();
