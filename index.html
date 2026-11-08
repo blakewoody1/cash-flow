@@ -685,7 +685,7 @@ a{color:var(--ink)}
   :root{--bb:max(6px, calc(env(safe-area-inset-bottom) - 20px))}
   .fab{width:50px;height:50px;border-radius:16px;bottom:var(--bb);right:max(18px,calc(50% - 262px))}
   .fab svg{width:22px;height:22px}
-  body.tlfix .tl{padding-bottom:16px}
+  body.tlfix .tl{padding-bottom:calc(env(safe-area-inset-bottom) + 12px)}
   body.tlfix .jump,body.tlfix.barhide .jump{bottom:12px}
   .wrap{padding-top:calc(env(safe-area-inset-top) + 26px)}
   .hero{padding-top:6px}
@@ -701,6 +701,17 @@ a{color:var(--ink)}
 .ponly,#tabs .ponly{display:none}
 @media (max-width: 899px){ #tabs .ponly{display:flex} #tabs .dhead.ponly,#tabs .dsep.ponly{display:block} }
 .dacct small{margin-left:auto;font-size:13px;color:var(--accent);font-weight:700}
+/* v45 (iPhone): menu and + live on the top line of the balance card (left / right); the bottom buttons are gone and the timeline runs to the bottom */
+.hcorner{display:none}
+@media (max-width: 899px){
+  .toprow,.fab{display:none !important}
+  .herotop{position:relative;padding:0 52px}
+  .hcorner{display:grid;place-items:center;position:absolute;top:50%;transform:translateY(-50%);width:44px;height:44px;border-radius:14px}
+  .hmenu{left:0;background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+  .hadd{right:0;background:var(--green);color:var(--green-ink)}
+  .hcorner:active{transform:translateY(-50%) scale(.94)}
+  #tabs,body.barhide #tabs{top:calc(env(safe-area-inset-top) + 80px);bottom:auto;max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 100px)}
+}
 </style>
 </head>
 <body>
@@ -2050,7 +2061,7 @@ function renderHero(){
   const uncBtn = `<button class="tline ${uOn ? "on" : ""}" id="btnUnc" aria-pressed="${uOn}">Uncleared <b>${nu}</b></button>`;
   const safeBtn = `<button class="tline ${panel === "month" ? "on" : ""}" data-hero="month" aria-expanded="${panel === "month"}">${ss ? `Safe to spend <b class="${ss.short ? "neg" : ""}">${money(ss.safe)}</b>` : "Month"}<span class="tcaret">${panel === "month" ? "▴" : "▾"}</span></button>`;
   h.innerHTML = `<div class="card hero">
-    <div class="herotop"><span class="lbl">${esc(label)}</span><button class="monthbtn" id="btnMonth" aria-label="Change month, showing ${esc(m.title)}">${esc(m.title)} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+    <div class="herotop">${window.innerWidth < 900 ? `<button class="hcorner hmenu" id="hMenu" aria-label="Open menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><button class="hcorner hadd" id="hAdd" aria-label="Add"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>` : ""}<span class="lbl">${esc(label)}</span><button class="monthbtn" id="btnMonth" aria-label="Change month, showing ${esc(m.title)}">${esc(m.title)} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
     <button class="big bigbtn ${bal < 0 ? "neg" : ""}" id="btnBal" aria-label="${esc(label)} ${money(bal)}. Show the timeline">${money(bal)}</button>
     <button class="cashline" id="btnSavLine" aria-label="Savings ${money(sav)}, total cash ${money(total)}. Open savings"><span>Savings <b>${money(sav)}</b></span><i></i><span>Total cash <b>${money(total)}</b></span></button>
     <div class="cashline textbtns">${safeBtn}<i></i>${uncBtn}</div>
@@ -2396,7 +2407,8 @@ document.addEventListener("click", e => {
   if (t.dataset.month) { if (!$("#sheet").hidden) closeSheet(); S.showPast = false; return switchMonth(t.dataset.month); }
   if (t.dataset.hero) { S.heroPanel = S.heroPanel === t.dataset.hero ? "" : t.dataset.hero; lsSet("cf_hero", S.heroPanel); renderHero(); return fitTimeline(); }
   if (t.id === "btnMonth") return monthSheet();
-  if (t.id === "btnMenu") return setDrawer(!document.body.classList.contains("drawer"));
+  if (t.id === "btnMenu" || t.id === "hMenu") return setDrawer(!document.body.classList.contains("drawer"));
+  if (t.id === "hAdd") { setDrawer(false); return S.month && addSheet("expense"); }
   if (t.id === "dscrim") return setDrawer(false);
   if (t.dataset.tab) { setDrawer(false); S.view = t.dataset.tab; return render(); }
   if (t.dataset.ins) { S.ins = t.dataset.ins; return renderView(); }
@@ -2785,7 +2797,7 @@ function fitTimeline(){
   if (!on) { tl.style.height = ""; return; }
   if (window.scrollY) window.scrollTo(0, 0);
   // v40: the timeline ends just above the menu / + buttons, which sit under it
-  const fr = $("#fab") ? $("#fab").getBoundingClientRect() : null, floor = fr && fr.height ? fr.top - 8 : window.innerHeight - 64;
+  const floor = window.innerHeight - 6;   // v45: no bottom buttons on iPhone; the timeline runs to the bottom
   tl.style.height = Math.max(260, floor - tl.getBoundingClientRect().top) + "px";
 }
 let barHidden = false;
