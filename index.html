@@ -565,12 +565,15 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
 
 /* plain top bar and balance card: no outline, rounded box or glass, just the page background */
 .toprow{background:var(--bg);border:0;border-radius:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none;
-  left:0;right:0;top:0;height:calc(env(safe-area-inset-top) + 68px);padding:env(safe-area-inset-top) max(10px, calc(50% - 274px)) 0 max(6px, calc(50% - 278px))}
+  left:0;right:0;top:env(safe-area-inset-top);height:68px;padding:0 max(10px, calc(50% - 274px)) 0 max(6px, calc(50% - 278px))}
+/* v37: a separate solid strip covers only the status bar. iOS 26 blurs the fixed bar that touches the top edge,
+   so the bar with the buttons now starts below the status bar and stays sharp. */
+.sbar{position:fixed;z-index:9;left:0;right:0;top:0;height:env(safe-area-inset-top);background:var(--bg);pointer-events:none}
 .hero{background:none;border:0;border-radius:0;box-shadow:none;padding-left:4px;padding-right:4px}
 .hero .stat{background:var(--card)}
 @media (max-width: 899px){ .wrap{padding-top:calc(env(safe-area-inset-top) + 58px)} .hero{padding-top:6px} }
 @media (min-width: 900px){
-  .toprow{top:0;left:0;right:0;height:calc(env(safe-area-inset-top) + 86px);padding:env(safe-area-inset-top) 20px 0;background:var(--bg)}
+  .toprow{top:env(safe-area-inset-top);left:0;right:0;height:86px;padding:0 20px;background:var(--bg)}
   .toprow h1,.tacts{background:none;border:0;box-shadow:none;-webkit-backdrop-filter:none;backdrop-filter:none}
 }
 
@@ -672,6 +675,7 @@ a{color:var(--ink)}
 </style>
 </head>
 <body>
+<div class="sbar" aria-hidden="true"></div>
 <div class="wrap">
   <div class="toprow">
     <h1><button class="icon menubtn" id="btnMenu" aria-label="Open menu" aria-expanded="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><button class="acctbtn" id="btnAcct" aria-label="Switch account"><span id="acctName">Cash Flow</span> <span class="caret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button></h1>
