@@ -707,6 +707,8 @@ a{color:var(--ink)}
 @media (display-mode: standalone){ html{min-height:min(100lvh, calc(100% + env(safe-area-inset-top)))} }
 html.standalone{min-height:min(100lvh, calc(100% + env(safe-area-inset-top)))}
 .hcorner{display:none}
+.mhead{margin:18px 4px 2px;padding-top:12px;border-top:1px solid var(--line);font-size:20px;font-weight:800;letter-spacing:-.01em}
+.tlmore{text-align:center;color:var(--muted);font-size:13px;padding:18px 0 6px}
 @media (max-width: 899px){
   .toprow,.fab{display:none !important}
   .herotop{position:relative;padding:0 52px}
@@ -1032,6 +1034,7 @@ async function loadAll(pickTitle){
     if (S.month && (!navigator.onLine || e.code === "server_unavailable" || e.code === "offline")) S.offline = true; else S.err = e;
   }
   S.loading = false; S.refreshing = false; render();
+  if (!S.err) tlRefreshOthers();
 }
 
 /* ---------- cleared marks ---------- */
@@ -2025,7 +2028,7 @@ function renderHero(){
   if (inMonth) { for (const r of rows) if (r.serial != null && r.serial <= T) bal = r.bal; }
   else if (T > lastS) { bal = m.sum.ending; label = `Ended ${m.title} with`; }
   else { label = `Starts ${m.title} with`; }
-  if (window.innerWidth < 900) label = acctName(S.id) + " · " + (inMonth ? "right now" : label.replace(/^./, c => c.toLowerCase()));
+  if (window.innerWidth < 900) label = acctName(S.id) + " · " + (inMonth ? "right now" : T > lastS ? "ended with" : "starts with");   // v47: short so the line never wraps
   let pill = "";
   if (inMonth) {
     const next = rows.find(r => r.kind === "income" && r.serial > T);
@@ -2079,19 +2082,25 @@ function renderView(){
   const v = $("#view");
   if (!S.month) { v.innerHTML = S.loading ? `<div class="card" style="padding:14px"><div class="skel"></div><div class="skel"></div><div class="skel" style="width:70%"></div></div>` : ""; return; }
   // Keep the timeline's scroll spot across live refreshes; jump to today on open, month switch or tab switch
-  const old = $("#tl"), keep = old && !S.snapToday ? {top: old.scrollTop, month: S.tlMonth} : null;
+  const old = $("#tl"), keep = old && !S.snapToday ? {top: old.scrollTop, base: S.tl && S.tl.base} : null;
   if (S.err) v.innerHTML = notice(errInfo(S.err), true); else v.innerHTML = "";
   if (S.view === "timeline") {
     v.innerHTML += timelineHTML();
     const tl = $("#tl");
     if (tl) {
-      if (keep && keep.month === S.month.title) tl.scrollTop = keep.top;
+      if (keep && S.tl && keep.base === S.tl.base) tl.scrollTop = keep.top;
       else { const a = $("#tlAnchor"); tl.scrollTop = a && !$("#btnPast") ? Math.max(0, a.offsetTop - 4) : 0; }
       S.tlMonth = S.month.title; S.snapToday = false;
       const btn = $("#btnToday"), a = $("#tlAnchor");
       const upd8 = () => { if (!a) { btn.hidden = true; return; } const d = a.offsetTop - tl.scrollTop; btn.hidden = Math.abs(d) < 120; btn.textContent = d < 0 ? "↑ Today" : "↓ Today"; };
       let last = tl.scrollTop;
-      tl.addEventListener("scroll", () => { upd8(); const y = tl.scrollTop; barOnScroll(y, last, a ? a.offsetTop : 0); last = y; }, {passive:true}); upd8();
+      let raf = 0;
+      const follow = () => { raf = 0; if (!S.tl || !tl.isConnected) return;
+        const t = tlMonthInView(tl);
+        if (t && t !== S.month.title && S.tl.data[t]) { S.month = S.tl.data[t]; renderHero(); }
+        if (tl.scrollHeight - tl.scrollTop - tl.clientHeight < 900) tlAppendNext(); };
+      tl.addEventListener("scroll", () => { upd8(); const y = tl.scrollTop; barOnScroll(y, last, a ? a.offsetTop : 0); last = y; if (!raf) raf = requestAnimationFrame(follow); }, {passive:true}); upd8();
+      setTimeout(follow, 50);
     }
   }
   if (S.view === "insights") {
@@ -2126,8 +2135,8 @@ function pendHTML(x, bal){
 function expHTML(it, bal){
   return `<button class="item k-spend ${it.cleared ? "isClr" : ""}" data-log="spend" data-r="${it.r}"><span class="dot"></span><span class="mid"><span class="desc">${esc(it.text || "Expense")}${it.cleared ? `<span class="cbadge" title="Cleared">✓</span>` : ""}</span><span class="sub">Spending Log</span></span><span class="amt"><b>-${money(it.amt)}</b><small class="${bal < 0 ? "neg" : ""}">${money(bal)}</small></span></button>`;
 }
-function timelineHTML(){
-  const T = todaySerial(), m = S.month;
+function monthTlHTML(m, isBase){
+  const T = todaySerial();
   // Sheet rows, minus the weekly "Everyday spending" lumps…
   const entries = m.rows.filter(r => r.kind !== "blank" && r.kind !== "spend").map((r, i) => ({s:r.serial, o:0, i, row:r}));
   // …plus each Spending Log expense that this month tab counts, on its own date
@@ -2152,7 +2161,7 @@ function timelineHTML(){
   const hasToday = groups.some(g => g.s === T);
   // earlier days fold behind one row (only when this month has today or later in it)
   const pastN = groups.filter(g => g.s != null && g.s < T).length;
-  const fold = !S.showPast && pastN > 0 && groups.some(g => g.s != null && g.s >= T);
+  const fold = isBase && !S.showPast && pastN > 0 && groups.some(g => g.s != null && g.s >= T);
   if (fold) out += `<button class="pastrow" id="btnPast">Show ${pastN} earlier day${pastN === 1 ? "" : "s"} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
   for (const g of groups){
     if (fold && g.s != null && g.s < T) continue;
@@ -2162,9 +2171,80 @@ function timelineHTML(){
     const endBal = g.rows[g.rows.length-1].bal;
     out += `<div class="${g.s != null && g.s < T ? "past" : ""}" ${isToday ? 'id="tlAnchor"' : ""}><div class="day ${isToday ? "isToday" : ""}"><span>${isToday ? "Today · " : ""}${g.s != null ? esc(dayLabel(g.s)) : ""}</span><span class="bal ${endBal < 0 ? "neg" : ""}">${money(endBal)}</span></div><div class="card group">${g.rows.map(e => e.pend ? pendHTML(e.pend, e.bal) : e.it ? expHTML(e.it, e.bal) : itemHTML(e.row, e.bal)).join("")}</div></div>`;
   }
-  if (!out) return `<div class="empty">Nothing on this month yet.</div>`;
-  return `<div class="tlwrap"><div class="tl" id="tl">${out}<div style="height:12px"></div></div><button class="jump" id="btnToday" hidden>↑ Today</button></div>`;
+  return out || `<div class="empty">Nothing on ${esc(m.title)} yet.</div>`;
 }
+/* v47: one continuous timeline. It starts at the month you opened (S.tl.base) and the next months are added below as you
+   scroll, through the last month tab. The top of the screen follows the month you're scrolling through. */
+function tlSync(){
+  if (!S.tl || S.tl.sid !== S.id || !S.tl.titles.includes(S.month.title)) S.tl = {sid:S.id, base:S.month.title, titles:[S.month.title], data:{}, fresh:{}};
+  S.tl.data[S.month.title] = S.month;
+}
+function tlSectionHTML(title){
+  const m = S.tl.data[title], isBase = title === S.tl.base;
+  return `<section class="tlmonth" data-mtitle="${esc(title)}">${isBase ? "" : `<div class="mhead">${esc(title)}</div>`}${monthTlHTML(m, isBase)}</section>`;
+}
+function tlEndHTML(){ return nextTitleOf(S.tl.titles[S.tl.titles.length-1]) ? `<div class="tlmore" id="tlMore">Loading the next month…</div>` : `<div class="tlmore">End of your month tabs</div>`; }
+function timelineHTML(){
+  tlSync();
+  return `<div class="tlwrap"><div class="tl" id="tl">${S.tl.titles.map(tlSectionHTML).join("")}${tlEndHTML()}<div style="height:12px"></div></div><button class="jump" id="btnToday" hidden>↑ Today</button></div>`;
+}
+// add the next month below (cache first, then the fresh copy from the sheet)
+let tlAdding = null;
+function tlAppendNext(){
+  if (tlAdding) return tlAdding;
+  if (!S.tl || S.view !== "timeline") return Promise.resolve(false);
+  const nt = nextTitleOf(S.tl.titles[S.tl.titles.length-1]); if (!nt) return Promise.resolve(false);
+  const sid = S.id;
+  tlAdding = (async () => {
+    let m = null;
+    try { m = await loadMonth(nt, true); } catch(e) {}
+    if (!m) { try { m = await loadMonth(nt); S.tl.fresh[nt] = 1; } catch(e) {
+      const more = $("#tlMore"); if (more) more.textContent = navigator.onLine ? `Couldn't load ${nt} — scroll again to retry` : `${nt} isn't saved on this phone yet — it loads when you're online`;
+      await new Promise(r => setTimeout(r, 1500)); return false; } }
+    if (!S.tl || S.id !== sid || S.tl.titles.includes(nt)) return false;
+    S.tl.data[nt] = m; S.tl.titles.push(nt);
+    const tl = $("#tl"), more = $("#tlMore");
+    if (tl) { const at = more || tl.lastElementChild; at.insertAdjacentHTML("beforebegin", tlSectionHTML(nt)); if (more) more.outerHTML = tlEndHTML(); }
+    if (!S.tl.fresh[nt]) tlRefresh(nt);
+    return true;
+  })().finally(() => { tlAdding = null; });
+  return tlAdding;
+}
+// swap in the fresh copy of a month that's already on screen, keeping your place
+async function tlRefresh(title){
+  if (!S.tl || title === S.month.title && S.tl.base === title) return;
+  const sid = S.id;
+  try {
+    const m = await loadMonth(title);
+    if (!S.tl || S.id !== sid || !S.tl.titles.includes(title)) return;
+    S.tl.data[title] = m; S.tl.fresh[title] = 1;
+    if (S.month.title === title) { S.month = m; renderHero(); }
+    const tl = $("#tl"), sec = tl && tl.querySelector(`[data-mtitle="${CSS.escape(title)}"]`); if (!sec) return;
+    const above = sec.getBoundingClientRect().bottom < tl.getBoundingClientRect().top, h0 = sec.offsetHeight;
+    sec.outerHTML = tlSectionHTML(title);
+    if (above) { const s2 = tl.querySelector(`[data-mtitle="${CSS.escape(title)}"]`); tl.scrollTop += s2.offsetHeight - h0; }
+  } catch(e) {}
+}
+// after a refresh of the month in view, the months below may have new starting balances: re-read them quietly
+function tlRefreshOthers(){ if (!S.tl || !S.month) return; S.tl.fresh = {}; S.tl.fresh[S.month.title] = 1; S.tl.titles.filter(t => t !== S.month.title).reduce((p, t) => p.then(() => tlRefresh(t)), Promise.resolve()); }
+// which month is at the top of the timeline right now
+function tlMonthInView(tl){
+  const top = tl.getBoundingClientRect().top + 24; let cur = null;
+  for (const sec of tl.querySelectorAll(".tlmonth")) { if (sec.getBoundingClientRect().top <= top) cur = sec.dataset.mtitle; else break; }
+  return cur || S.tl.titles[0];
+}
+// tapping a month: jump to its first day (adding the months in between if needed)
+async function jumpToMonth(title){
+  if (S.view !== "timeline" || !S.tl || !S.tabs.some(x => x.title === title)) { S.showPast = false; return switchMonth(title); }
+  if (tabKey(title) < tabKey(S.tl.base)) { S.tl = null; S.showPast = true; S.snapToday = true; return switchMonth(title); }
+  if (title === S.tl.base && !S.showPast && $("#btnPast")) { S.showPast = true; S.snapToday = true; renderView(); }
+  while (!S.tl.titles.includes(title)) { if (!(await tlAppendNext())) break; }
+  const tl = $("#tl"), sec = tl && tl.querySelector(`[data-mtitle="${CSS.escape(title)}"]`);
+  if (!sec) return;
+  tl.scrollTop = sec.offsetTop - tl.offsetTop - (title === S.tl.base ? 0 : 2);
+  if (S.tl.data[title] && S.month.title !== title) { S.month = S.tl.data[title]; renderHero(); }
+}
+
 function logHTML(which){
   const isSpend = which === "spend", log = isSpend ? S.spend : S.save, T = todaySerial();
   let head = "";
@@ -2408,7 +2488,7 @@ document.addEventListener("click", e => {
   }
   if (t.id === "btnClearCache") { Object.keys(localStorage).filter(x => x.startsWith("cf_c:")).forEach(x => localStorage.removeItem(x)); toast("Saved offline data cleared — it refills next time you're online"); return; }
   if (t.id === "retry") { S.tabs = []; return loadAll(); }
-  if (t.dataset.month) { if (!$("#sheet").hidden) closeSheet(); S.showPast = false; return switchMonth(t.dataset.month); }
+  if (t.dataset.month) { if (!$("#sheet").hidden) closeSheet(); return jumpToMonth(t.dataset.month); }
   if (t.dataset.hero) { S.heroPanel = S.heroPanel === t.dataset.hero ? "" : t.dataset.hero; lsSet("cf_hero", S.heroPanel); renderHero(); return fitTimeline(); }
   if (t.id === "btnMonth") return monthSheet();
   if (t.id === "btnMenu" || t.id === "hMenu") return setDrawer(!document.body.classList.contains("drawer"));
@@ -2416,7 +2496,13 @@ document.addEventListener("click", e => {
   if (t.id === "dscrim") return setDrawer(false);
   if (t.dataset.tab) { setDrawer(false); S.view = t.dataset.tab; return render(); }
   if (t.dataset.ins) { S.ins = t.dataset.ins; return renderView(); }
-  if (t.id === "btnBal") { S.view = "timeline"; S.snapToday = true; setDrawer(false); return render(); }
+  if (t.id === "btnBal") {
+    S.view = "timeline"; S.snapToday = true; S.showPast = false; setDrawer(false);
+    const tt = tabForSerial(todaySerial());   // v47: back to today's month even after scrolling or jumping elsewhere
+    if (tt && S.tl && S.tl.base !== tt && !S.tl.titles.includes(tt)) { S.tl = null; S.showPast = false; return switchMonth(tt); }
+    if (tt && S.tl && S.tl.data[tt] && S.month.title !== tt) S.month = S.tl.data[tt];
+    return render();
+  }
   if (t.id === "btnSavLine") { S.view = "savings"; S.snapToday = true; return render(); }
   if (t.id === "btnSav") { S.view = S.view === "savings" ? "timeline" : "savings"; S.snapToday = true; return render(); }
   if (t.id === "btnUnc") { S.view = S.view === "uncleared" ? "timeline" : "uncleared"; S.snapToday = true; return render(); }
@@ -2446,6 +2532,7 @@ document.addEventListener("click", e => {
   if (t.dataset.arepfor != null) { document.querySelectorAll("#arepForSeg button").forEach(b => b.classList.toggle("on", b === t)); drawAddRepeat(); return; }
   if (t.dataset.clrset != null) { document.querySelectorAll("#clrSeg button").forEach(b => b.classList.toggle("on", b === t)); return; }
   if (t.dataset.dir) { document.querySelectorAll("#dir button").forEach(b => b.classList.toggle("on", b === t)); return; }
+  { const sec = t.closest && t.closest(".tlmonth"); if (sec && S.tl && sec.dataset.mtitle !== S.month.title && S.tl.data[sec.dataset.mtitle]) { S.month = S.tl.data[sec.dataset.mtitle]; renderHero(); } }
   if (t.dataset.row) return rowSheet(+t.dataset.row);
   if (t.dataset.log) return logSheet(t.dataset.log, +t.dataset.r);
   if (t.id === "btnSync") return flushQueue(true);
