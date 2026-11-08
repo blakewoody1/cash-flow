@@ -2758,7 +2758,16 @@ document.addEventListener("paste", e => {
 
 /* ---------- iPhone: balance card stays put while the timeline scrolls; tab bar tucks away when scrolling ahead ---------- */
 const isPhone = () => window.innerWidth < 900;
+// v43: in the iPhone home-screen app, iOS 26 can stop the page ~60pt above the bottom of the screen
+// (window.innerHeight < screen.height). Then the menu / + buttons are pulled down into that strip, ~26pt above the screen edge.
+function fixBottomGap(){
+  const r = document.documentElement, gap = screen.height - window.innerHeight;
+  const standalone = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
+  if (standalone && window.innerWidth < 900 && window.innerHeight > window.innerWidth && gap > 20 && gap < 140) r.style.setProperty("--bb", (26 - gap) + "px");
+  else r.style.removeProperty("--bb");
+}
 function fitTimeline(){
+  fixBottomGap();
   const tl = $("#tl"), on = isPhone() && !!tl, pad = !isPhone() && !!tl;
   document.body.classList.toggle("tlfix", on);
   document.body.classList.toggle("tlfixpad", pad);
