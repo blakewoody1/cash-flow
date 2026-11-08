@@ -702,9 +702,11 @@ a{color:var(--ink)}
 const SERVER = "Google Sheets";
 const DEFAULT_ID = "14yvG4FmByEp2Te4gIPQ5FPQ2n6hwSN-quB7b95WRQ1U";
 // Accounts: one Google Sheet each (same layout). Each must also be listed in SHEETS in the Apps Script.
-const DEFAULT_ACCOUNTS = [{name:"Cash Flow", id:DEFAULT_ID}, {name:"WNC", id:"109ZOrysstYv1adeMnFclmQD_dmK92RVXOx0kcpql18E"}];
+const DEFAULT_ACCOUNTS = [{name:"Mountain", id:DEFAULT_ID}, {name:"WNC", id:"109ZOrysstYv1adeMnFclmQD_dmK92RVXOx0kcpql18E"}];
 function getAccounts(){ try { const a = JSON.parse(lsGet("cf_accounts") || "null"); if (Array.isArray(a) && a.length) return a; } catch(e){} return DEFAULT_ACCOUNTS; }
 function saveAccounts(a){ lsSet("cf_accounts", JSON.stringify(a)); }
+// Nov 7, 2026: the main account is called "Mountain" in the app (the sheet is still "Cash Flow"). One time only, so a later rename in Settings sticks.
+if (!lsGet("cf_mtn")) { try { const a = JSON.parse(lsGet("cf_accounts") || "null"); if (Array.isArray(a)) { a.forEach(x => { if (x.id === DEFAULT_ID && x.name === "Cash Flow") x.name = "Mountain"; }); saveAccounts(a); } } catch(e){} lsSet("cf_mtn", "1"); }
 const acctName = id => (getAccounts().find(a => a.id === id) || {}).name || "Account";
 // settings that belong to one account (main account keeps the original keys)
 const akey = (base, id) => ((id || S.id) === DEFAULT_ID ? base : base + ":" + (id || S.id));
