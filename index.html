@@ -682,13 +682,17 @@ a{color:var(--ink)}
     -webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%)}
   #btnMenu svg{width:22px;height:22px}
   /* v40: the two corner buttons sit in the strip under the timeline, low in the home-indicator area; the timeline ends above them */
-  :root{--bb:max(10px, calc(env(safe-area-inset-bottom) - 14px))}
+  :root{--bb:max(6px, calc(env(safe-area-inset-bottom) - 20px))}
   .fab{width:50px;height:50px;border-radius:16px;bottom:var(--bb);right:max(18px,calc(50% - 262px))}
   .fab svg{width:22px;height:22px}
   body.tlfix .tl{padding-bottom:16px}
   body.tlfix .jump,body.tlfix.barhide .jump{bottom:12px}
-  .wrap{padding-top:calc(env(safe-area-inset-top) + 46px)}
+  .wrap{padding-top:calc(env(safe-area-inset-top) + 34px)}
   .hero{padding-top:6px}
+  /* v41: tighter spacing so the timeline gets more room */
+  .hero.card{padding-bottom:6px}
+  #foot.foot{margin-top:0;margin-bottom:6px}
+  body.tlfix .pastrow{margin-top:2px}
   #tabs,body.barhide #tabs{top:auto;bottom:calc(var(--bb) + 60px);max-height:calc(100dvh - env(safe-area-inset-top) - var(--bb) - 110px);overflow-y:auto;
     transform:translateX(calc(-100% - 20px))}
   body.drawer #tabs{transform:none}
@@ -2772,7 +2776,7 @@ function fitTimeline(){
   if (!on) { tl.style.height = ""; return; }
   if (window.scrollY) window.scrollTo(0, 0);
   // v40: the timeline ends just above the menu / + buttons, which sit under it
-  const fr = $("#fab") ? $("#fab").getBoundingClientRect() : null, floor = fr && fr.height ? fr.top - 10 : window.innerHeight - 70;
+  const fr = $("#fab") ? $("#fab").getBoundingClientRect() : null, floor = fr && fr.height ? fr.top - 8 : window.innerHeight - 64;
   tl.style.height = Math.max(260, floor - tl.getBoundingClientRect().top) + "px";
 }
 let barHidden = false;
