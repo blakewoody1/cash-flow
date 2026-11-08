@@ -687,7 +687,7 @@ a{color:var(--ink)}
   .fab svg{width:22px;height:22px}
   body.tlfix .tl{padding-bottom:16px}
   body.tlfix .jump,body.tlfix.barhide .jump{bottom:12px}
-  .wrap{padding-top:calc(env(safe-area-inset-top) + 34px)}
+  .wrap{padding-top:calc(env(safe-area-inset-top) + 26px)}
   .hero{padding-top:6px}
   /* v41: tighter spacing so the timeline gets more room */
   .hero.card{padding-bottom:6px}
@@ -2375,7 +2375,7 @@ function settingsSheet(){
 document.addEventListener("click", e => {
   const t = e.target.closest("button, #scrim, #dscrim"); if (!t) return;
   if (t.id === "scrim" || t.hasAttribute("data-close")) return closeSheet();
-  if (t.id === "fab") return S.month && addSheet();
+  if (t.id === "fab") return S.month && addSheet("expense");   // v42: + always opens on Expense
   if (t.id === "btnRefresh") { if (!S.busy && mcp) { S.tabs = []; loadAll(); } return; }
   if (t.id === "btnAcct") return acctSheet();
   if (t.dataset.acct) { setDrawer(false); return switchAccount(t.dataset.acct); }
