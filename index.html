@@ -514,6 +514,9 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
 .monthbtn{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 11px;border-radius:15px;background:var(--chip);font-size:13px;font-weight:700;color:var(--ink)}
 .monthbtn:active{transform:scale(.96)}
 .hero .big{margin:2px 0 10px}
+.hero .bigbtn{display:block;width:100%;text-align:center;border:0;background:none;padding:0 8px;line-height:1.15;border-radius:12px;color:inherit;font-family:inherit;cursor:pointer}
+.hero .bigbtn.neg{color:var(--warn)}
+.hero .bigbtn:active{background:var(--chip-on)}
 .cashline{display:flex;align-items:center;justify-content:center;gap:10px;margin:-4px auto 12px;padding:3px 10px;border:0;background:none;font:inherit;font-size:14px;color:var(--muted);cursor:pointer;border-radius:10px;font-variant-numeric:tabular-nums}
 .cashline b{color:var(--text);font-weight:600}
 .cashline i{width:3px;height:3px;border-radius:2px;background:var(--muted);opacity:.6}
@@ -2000,7 +2003,7 @@ function renderHero(){
   const uncBtn = `<button class="hbtn2 ${uOn ? "on" : ""}" id="btnUnc" aria-pressed="${uOn}">Uncleared${nu ? `<b class="badge">${nu}</b>` : ""}</button>`;
   h.innerHTML = `<div class="card hero">
     <div class="herotop"><span class="lbl">${esc(label)}</span><button class="monthbtn" id="btnMonth" aria-label="Change month, showing ${esc(m.title)}">${esc(m.title)} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
-    <div class="big ${bal < 0 ? "neg" : ""}">${money(bal)}</div>
+    <button class="big bigbtn ${bal < 0 ? "neg" : ""}" id="btnBal" aria-label="${esc(label)} ${money(bal)}. Show the timeline">${money(bal)}</button>
     <button class="cashline" id="btnSavLine" aria-label="Savings ${money(sav)}, total cash ${money(total)}. Open savings"><span>Savings <b>${money(sav)}</b></span><i></i><span>Total cash <b>${money(total)}</b></span></button>
     <div class="herobtns">${hb("month", ss ? "Safe to spend" : "Month")}${uncBtn}</div>
     ${panel && panels[panel] ? `<div class="heropanel">${panels[panel]}</div>` : ""}
@@ -2346,6 +2349,7 @@ document.addEventListener("click", e => {
   if (t.id === "dscrim") return setDrawer(false);
   if (t.dataset.tab) { setDrawer(false); S.view = t.dataset.tab; return render(); }
   if (t.dataset.ins) { S.ins = t.dataset.ins; return renderView(); }
+  if (t.id === "btnBal") { S.view = "timeline"; S.snapToday = true; setDrawer(false); return render(); }
   if (t.id === "btnSavLine") { S.view = "savings"; S.snapToday = true; return render(); }
   if (t.id === "btnSav") { S.view = S.view === "savings" ? "timeline" : "savings"; S.snapToday = true; return render(); }
   if (t.id === "btnUnc") { S.view = S.view === "uncleared" ? "timeline" : "uncleared"; S.snapToday = true; return render(); }
