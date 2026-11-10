@@ -35,10 +35,6 @@ input,select{font:inherit;color:inherit}
 h1{font-size:22px;margin:0;letter-spacing:-.01em}
 .icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;color:var(--muted)}
 .icon:active{background:var(--line)}
-.months{display:flex;gap:8px;overflow-x:auto;scrollbar-width:none;padding:2px 2px 12px;margin:0 -14px;padding-left:16px;padding-right:16px;scroll-snap-type:x proximity}
-.months::-webkit-scrollbar{display:none}
-.chip{flex:none;padding:8px 14px;border-radius:999px;background:var(--card);border:1px solid var(--line);font-size:15px;white-space:nowrap;scroll-snap-align:center}
-.chip.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);border:1px solid var(--line)}
 .hero{padding:18px 18px 14px}
 .hero .lbl{color:var(--muted);font-size:14px}
@@ -66,13 +62,6 @@ h1{font-size:22px;margin:0;letter-spacing:-.01em}
 .item{display:flex;width:100%;align-items:center;gap:12px;padding:12px 14px;text-align:left;border-top:1px solid var(--line);min-height:56px}
 .item:first-child{border-top:0}
 .item:active{background:var(--bg)}
-.titem{padding:0;gap:0}
-.titem:active{background:none}
-.ibody{display:flex;flex:1;min-width:0;align-items:center;gap:12px;padding:12px 14px 12px 4px;text-align:left;min-height:56px}
-.ibody:active{background:var(--bg)}
-.chk{flex:none;width:44px;align-self:stretch;display:grid;place-items:center}
-.chk::before{content:"";width:22px;height:22px;border-radius:50%;border:2px solid var(--line);box-sizing:border-box;transition:all .15s}
-.isClr .chk::before{content:"✓";background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:800;line-height:18px;text-align:center}
 .pending{opacity:.75;border-left:3px solid var(--spend)}
 .pending .sub{color:var(--spend)}
 .cbadge{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:10px;font-weight:800;margin-left:7px;vertical-align:2px}
@@ -100,9 +89,6 @@ h1{font-size:22px;margin:0;letter-spacing:-.01em}
 .today::after{content:"";flex:1;height:2px;background:var(--accent);border-radius:2px;opacity:.5}
 .fab{position:fixed;right:max(18px,calc(50% - 262px));bottom:calc(env(safe-area-inset-bottom) + 22px);width:62px;height:62px;border-radius:20px;background:var(--accent);color:var(--accent-ink);font-size:34px;font-weight:300;box-shadow:0 8px 24px rgba(0,0,0,.22);display:grid;place-items:center;z-index:5}
 .fab:active{transform:scale(.96)}
-.quick{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:14px}
-.quick button{background:var(--bg);border-radius:12px;padding:10px 4px;font-size:13px;font-weight:600;display:flex;flex-direction:column;align-items:center;gap:4px}
-.quick button i{font-style:normal;font-size:18px}
 .scrim{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:10}
 .sheet{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;background:var(--card);border-radius:22px 22px 0 0;z-index:11;padding:10px 18px calc(env(safe-area-inset-bottom) + 18px);max-height:calc(100dvh - env(safe-area-inset-top) - 28px);overflow-y:auto;box-shadow:0 -8px 30px rgba(0,0,0,.2);animation:up .18s ease-out}
 @keyframes up{from{transform:translateY(30px);opacity:.4}to{transform:none;opacity:1}}
@@ -177,8 +163,6 @@ a{color:var(--accent)}
 .tl .day{position:sticky;top:0;z-index:1;background:var(--bg)}
 .day.isToday{color:var(--accent)}
 .jump{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:999px;font-size:13px;font-weight:700;box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:2}
-.totop{position:fixed;left:max(18px,calc(50% - 262px));bottom:calc(env(safe-area-inset-bottom) + 30px);background:var(--ink);color:var(--bg);padding:12px 16px;border-radius:999px;font-size:15px;font-weight:700;box-shadow:0 6px 18px rgba(0,0,0,.25);z-index:5}
-.totop:active{transform:scale(.96)}
 h1{cursor:pointer}
 kbd{display:none;font:600 11px -apple-system,sans-serif;color:var(--muted);margin-left:5px}
 @media (min-width: 700px){ kbd{display:inline} }
@@ -201,7 +185,6 @@ kbd{display:none;font:600 11px -apple-system,sans-serif;color:var(--muted);margi
 .hero .stat{align-items:center;text-align:center}
 .hero .statbtn{text-align:center}
 .hero .totals{display:block;margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
-.tcap{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:6px}
 .tgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:4px}
 .tgrid span{display:flex;flex-direction:column;align-items:center;gap:1px}
 .tgrid small{font-size:11px;color:var(--muted)}
@@ -259,14 +242,7 @@ button.statcard{display:block;width:100%;text-align:left;font:inherit;color:inhe
 .tline b{font-variant-numeric:tabular-nums;white-space:nowrap}
 .tline:active{background:var(--bg)}
 .tempty{font-size:13px;color:var(--muted);padding:8px 0;font-family:-apple-system,sans-serif}
-/* month picker: floating bar at the bottom (iPhone); iPad rules below move it beside the + button */
-.months{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:6;
-  margin:0;padding:5px;max-width:calc(100vw - 28px);background:var(--card);border:1px solid var(--line);border-radius:999px;
-  box-shadow:0 6px 24px rgba(0,0,0,.16);scroll-snap-type:x proximity}
-.months .chip{border:0;background:none;padding:8px 15px}
-.months .chip.on{background:var(--ink);color:var(--bg)}
 .fab{bottom:calc(env(safe-area-inset-bottom) + 78px)}
-.totop{bottom:calc(env(safe-area-inset-bottom) + 86px)}
 .toast{bottom:calc(env(safe-area-inset-bottom) + 156px)}
 .wrap{padding-bottom:calc(env(safe-area-inset-bottom) + 170px)}
 .shead{position:sticky;top:-10px;z-index:3;display:flex;align-items:center;justify-content:space-between;gap:8px;background:var(--card);
@@ -308,11 +284,6 @@ button.statcard{display:block;width:100%;text-align:left;font:inherit;color:inhe
   .toprow,#queue,.foot{grid-column:1 / -1}
   .toprow{grid-row:1;padding-bottom:6px}
   #queue{grid-row:2}
-  /* month picker becomes a floating bar along the bottom */
-  .months{position:fixed;left:auto;transform:none;right:112px;bottom:calc(env(safe-area-inset-bottom) + 50px);z-index:6;
-    margin:0;padding:6px;max-width:calc(100vw - 600px);background:var(--card);border:1px solid var(--line);border-radius:999px;box-shadow:0 6px 24px rgba(0,0,0,.14)}
-  .months .chip{border:0;background:none;padding:8px 16px}
-  .months .chip.on{background:var(--ink);color:var(--bg)}
   /* "Live from…" line and the ⌘ button sit right under the month bar */
   .foot{position:fixed;right:112px;bottom:calc(env(safe-area-inset-bottom) + 12px);z-index:6;margin:0;padding:0;
     display:flex;align-items:center;gap:8px;font-size:12px;white-space:nowrap}
@@ -323,7 +294,6 @@ button.statcard{display:block;width:100%;text-align:left;font:inherit;color:inhe
   #leftcol::-webkit-scrollbar{display:none}
   #calc{display:block}
   #calbox:not([hidden]){display:block;margin-top:10px}
-  #periods{display:none}
   #tabs{grid-column:2;grid-row:3;margin-top:0}
   #view{grid-column:2;grid-row:4}
   h1{font-size:26px}
@@ -332,7 +302,7 @@ button.statcard{display:block;width:100%;text-align:left;font:inherit;color:inhe
   .stat small{font-size:12px}
   .seg button{font-size:15px;padding:11px 0}
   .tl{height:calc(100vh - 250px);min-height:420px}
-  .item,.ibody{min-height:62px}
+  .item{min-height:62px}
   .desc{font-size:17px}
   .sub{font-size:14px}
   .amt b{font-size:17px}
@@ -344,7 +314,6 @@ button.statcard{display:block;width:100%;text-align:left;font:inherit;color:inhe
   .safe .pnow{font-size:34px}
   .fab{right:28px;bottom:calc(env(safe-area-inset-bottom) + 22px)}
   .toast{bottom:calc(env(safe-area-inset-bottom) + 110px)}
-  .totop{left:28px;bottom:calc(env(safe-area-inset-bottom) + 30px)}
   .sheet{bottom:auto;top:50%;transform:translateY(-50%);border-radius:22px;max-height:86vh;animation:none}
   .grab{display:none}
 }
@@ -393,7 +362,6 @@ button.statcard{display:block;width:100%;text-align:left;font:inherit;color:inhe
   .hero .stats{margin-top:8px;gap:5px}
   .stat small{font-size:10.5px}
   .stat b{font-size:13px}
-  .tcap{display:none}
   .hero .totals{margin-top:8px;padding-top:6px}
   #calc{margin-top:8px}
   #calc .calc{padding:8px 10px}
@@ -435,7 +403,7 @@ button.statcard{display:block;width:100%;text-align:left;font:inherit;color:inhe
     --glass-shadow:0 10px 30px rgba(0,0,0,.55),0 1px 3px rgba(0,0,0,.4);
     --chip:rgba(255,255,255,.09);--chip-on:rgba(76,192,143,.20);--tab:#c9d0cc}
 }
-.toprow,#tabs,.totop{background:var(--glass);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
+.toprow,#tabs{background:var(--glass);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
   border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi)}
 .card{border:0;border-radius:var(--r)}
 .hero{border-radius:28px}
@@ -452,11 +420,6 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
 .icon{width:44px;height:44px;border-radius:22px;color:var(--ink)}
 .bankbtn{display:inline-flex;align-items:center;gap:6px;height:40px;padding:0 14px;border:0;border-radius:20px;background:var(--chip);font-size:15px;font-weight:600}
 
-/* month chips sit in the page under the top bar */
-.months{position:static;transform:none;left:auto;bottom:auto;max-width:none;z-index:auto;display:flex;gap:6px;
-  margin:0 -14px 12px;padding:2px 14px;background:none;border:0;border-radius:0;box-shadow:none}
-.months .chip{background:var(--card);border:0;box-shadow:var(--shadow);padding:8px 15px;font-weight:600}
-.months .chip.on{background:var(--accent);color:var(--accent-ink)}
 
 /* floating tab bar + add button */
 #tabs{position:fixed;z-index:8;left:var(--side);bottom:calc(env(safe-area-inset-bottom) + 14px);width:min(calc(100% - 100px), 460px);height:64px;margin:0;padding:5px;
@@ -465,8 +428,6 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
 #tabs button.on{background:var(--chip-on);color:var(--accent)}
 .fab{right:var(--side);bottom:calc(env(safe-area-inset-bottom) + 14px);width:64px;height:64px;border-radius:32px;border:1px solid var(--glass-edge);
   box-shadow:var(--glass-shadow),inset 0 1px 0 rgba(255,255,255,.35)}
-.totop{left:50%;transform:translateX(-50%);right:auto;bottom:calc(env(safe-area-inset-bottom) + 92px);color:var(--ink);padding:10px 16px}
-.totop:active{transform:translateX(-50%) scale(.96)}
 .toast{bottom:calc(env(safe-area-inset-bottom) + 96px);border-radius:16px}
 .sheet{border-radius:28px 28px 0 0}
 
@@ -496,13 +457,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
   #tabs button{flex-direction:row;padding:0 18px;border-radius:23px;font-size:15px}
   #tabs svg{display:none}
   #leftcol{top:calc(env(safe-area-inset-top) + 92px);height:calc(100dvh - 112px)}
-  .months{position:fixed;left:auto;right:112px;bottom:calc(env(safe-area-inset-bottom) + 50px);z-index:6;margin:0;padding:5px;max-width:calc(100vw - 600px);
-    border-radius:999px;background:var(--glass);-webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%);
-    border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow),inset 0 1px 0 var(--glass-hi)}
-  .months .chip{background:none;box-shadow:none}
   .fab{right:28px;bottom:calc(env(safe-area-inset-bottom) + 22px)}
-  .totop{left:28px;transform:none;bottom:calc(env(safe-area-inset-bottom) + 30px)}
-  .totop:active{transform:scale(.96)}
   .toast{bottom:calc(env(safe-area-inset-bottom) + 110px)}
   .sheet{border-radius:28px}
   .dot{width:40px;height:40px;border-radius:20px}
@@ -513,8 +468,7 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
   .bankbtn{padding:0 11px}
 }
 
-/* compact balance card: small buttons reveal the details; month picker lives in the card */
-.months{display:none!important}
+/* compact balance card: month picker lives in the card */
 .herotop{display:flex;align-items:center;justify-content:center;gap:8px;flex-wrap:wrap}
 .monthbtn{display:inline-flex;align-items:center;gap:4px;height:30px;padding:0 11px;border-radius:15px;background:var(--chip);font-size:13px;font-weight:700;color:var(--ink)}
 .monthbtn:active{transform:scale(.96)}
@@ -534,12 +488,6 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
 .cashline b{color:var(--text);font-weight:600}
 .cashline i{width:3px;height:3px;border-radius:2px;background:var(--muted);opacity:.6}
 .cashline:active{background:var(--chip-on)}
-.herobtns{display:flex;flex-wrap:nowrap;justify-content:center;gap:6px;overflow-x:auto;scrollbar-width:none;margin:0 -6px;padding:0 6px}
-.herobtns::-webkit-scrollbar{display:none}
-.hbtn2{flex:none;height:34px;padding:0 11px;border-radius:17px;background:var(--chip);font-size:13px;font-weight:600;color:var(--ink);white-space:nowrap}
-.hbtn2.on{background:var(--accent);color:var(--accent-ink)}
-.hbtn2.warn:not(.on){color:var(--warn);background:color-mix(in srgb,var(--warn) 13%,transparent)}
-.hbtn2:active{transform:scale(.96)}
 .heropanel{margin-top:12px;padding-top:12px;border-top:1px solid var(--line);animation:hp .16s ease-out}
 @keyframes hp{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 .heropanel .stats,.heropanel .clrline,.heropanel .totals{margin-top:0;padding-top:0;border-top:0}
@@ -547,20 +495,15 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
 .monthgrid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:4px}
 .mchoice{height:48px;border-radius:14px;background:var(--bg);font-weight:600;font-size:15px}
 .mchoice.on{background:var(--accent);color:var(--accent-ink)}
-@media (min-width: 900px){ .hbtn2{height:32px;font-size:13px;padding:0 11px} }
 
-/* iPhone: fixed card + full-height timeline; tab bar slides away while scrolling ahead */
+/* iPhone: fixed card + full-height timeline */
 @media (max-width: 899px){
   html:has(body.tlfix),body.tlfix{overflow:hidden;overscroll-behavior:none}
   body.tlfix .wrap{padding-bottom:0}
   body.tlfix .tl{padding-bottom:calc(env(safe-area-inset-bottom) + 100px);
     mask-image:linear-gradient(transparent 0,#000 14px);-webkit-mask-image:linear-gradient(transparent 0,#000 14px)}
   body.tlfix .jump{bottom:calc(env(safe-area-inset-bottom) + 96px);transition:bottom .28s ease}
-  body.tlfix.barhide .jump{bottom:calc(env(safe-area-inset-bottom) + 24px)}
   #tabs{transition:transform .3s cubic-bezier(.2,.8,.2,1),opacity .2s}
-  .fab{transition:transform .3s cubic-bezier(.2,.8,.2,1)}
-  body.barhide #tabs{transform:translateY(calc(100% + 40px));opacity:0;pointer-events:none}
-  body.barhide .fab{transform:scale(.8) translateY(10px)}
 }
 
 /* plain top bar and balance card: no outline, rounded box or glass, just the page background */
@@ -607,7 +550,6 @@ html,body{font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text",system-ui,s
 .fab{background:var(--green);color:var(--green-ink)}
 .today{color:var(--green)} .today::after{background:var(--green)}
 .day.isToday{color:var(--green)}
-.isClr .chk::before{background:var(--green);border-color:var(--green);color:var(--green-ink)}
 .cbadge{background:var(--green);color:var(--green-ink)}
 a{color:var(--ink)}
 /* "Live from … · Updated … · Open sheet" sits under the balance, not over the timeline */
@@ -617,22 +559,19 @@ a{color:var(--ink)}
 .foot .kbbtn{margin-top:0;width:26px;height:26px;font-size:14px;border-radius:8px}
 @media (min-width: 900px){ #foot{flex:none;margin:2px 0 8px} #calc{margin-top:0} }
 
-/* iPhone: month and Bank buttons as plain text (still tappable) */
+/* iPhone: month button as plain text (still tappable) */
 @media (max-width: 899px){
   .monthbtn{background:none;padding:0 4px;font-size:14px;min-height:44px;height:auto}
-  .bankbtn{background:none;padding:0 8px;height:44px}
-  .monthbtn:active,.bankbtn:active{background:var(--chip)}
+  .monthbtn:active{background:var(--chip)}
 }
 
 /* iPhone: no bottom tab bar; the views live in a panel that slides over from the left */
-.menubtn,.dhead,.dscrim{display:none}
+.dhead,.dscrim{display:none}
 @media (max-width: 899px){
-  .toprow h1{gap:0}
-  .menubtn{display:inline-flex;align-items:center;justify-content:center;margin-right:2px}
   .dscrim{display:block;position:fixed;inset:0;z-index:20;background:rgba(0,0,0,.28);animation:dsf .2s ease-out}
   .dscrim[hidden]{display:none}
   @keyframes dsf{from{opacity:0}to{opacity:1}}
-  #tabs,body.barhide #tabs{position:fixed;z-index:21;left:10px;top:calc(env(safe-area-inset-top) + 10px);bottom:auto;width:min(270px,calc(100vw - 60px));height:auto;
+  #tabs{position:fixed;z-index:21;left:10px;top:calc(env(safe-area-inset-top) + 10px);bottom:auto;width:min(270px,calc(100vw - 60px));height:auto;
     display:flex;flex-direction:column;align-items:stretch;gap:2px;padding:10px;border-radius:28px;
     transform:translateX(calc(-100% - 20px));opacity:1;pointer-events:none;transition:transform .32s cubic-bezier(.2,.8,.2,1)}
   body.drawer #tabs{transform:none;pointer-events:auto}
@@ -640,8 +579,7 @@ a{color:var(--ink)}
   #tabs button{flex:none;flex-direction:row;justify-content:flex-start;gap:14px;height:52px;padding:0 14px;border-radius:18px;font-size:17px;font-weight:600;color:var(--ink)}
   #tabs button.on{background:var(--chip-on);color:var(--ink)}
   #tabs svg{flex:none}
-  .totop{bottom:calc(env(safe-area-inset-bottom) + 24px)}
-  body.tlfix .jump,body.tlfix.barhide .jump{bottom:calc(env(safe-area-inset-bottom) + 24px)}
+  body.tlfix .jump{bottom:calc(env(safe-area-inset-bottom) + 24px)}
   body.tlfix .tl{padding-bottom:calc(env(safe-area-inset-bottom) + 96px)}
   .toast{bottom:calc(env(safe-area-inset-bottom) + 100px)}
 }
@@ -658,8 +596,6 @@ a{color:var(--ink)}
 .hpsheet .pills{display:flex;flex-wrap:wrap;gap:6px}
 .hpsheet .clrline{margin-top:0;font-size:15px}
 .hpsheet .totals{margin-top:0}
-.hbtn2 .badge{margin-left:6px;vertical-align:0}
-.hbtn2.on .badge{background:var(--accent-ink);color:var(--accent)}
 #tabs button[data-hp]{color:var(--ink)}
 @media (min-width: 900px){ .dsep{width:1px;height:28px;margin:auto 4px} }
 /* icons: grey for everything except money coming in */
@@ -672,29 +608,18 @@ a{color:var(--ink)}
 .k-save .amt b{color:var(--save)}
 #tabs button span{white-space:nowrap}
 @media (min-width: 900px){ #tabs button{padding:0 22px} }
-/* v39 (iPhone): no top bar. iOS blurs the status bar + ~45pt below it in the home-screen app, so the page starts just under that band.
-   Account, Bank and Settings live in the side menu; the menu button is a round button bottom-left. */
+/* iPhone: no top bar and no bottom buttons (the old ones are hidden further down). iOS blurs the status bar + ~45pt below it
+   in the home-screen app, so the page starts just under that band. Account, Bank and Settings live in the side menu. */
 @media (max-width: 899px){
-  .toprow{position:fixed;z-index:8;top:auto;bottom:var(--bb);left:max(18px,calc(50% - 262px));right:auto;width:50px;height:50px;padding:0;background:none}
-  .toprow h1{margin:0;width:50px;height:50px}
-  .toprow .acctbtn,.toprow .tacts{display:none}
-  #btnMenu{width:50px;height:50px;margin:0;border-radius:16px;background:var(--glass);color:var(--ink);border:1px solid var(--glass-edge);box-shadow:var(--glass-shadow);
-    -webkit-backdrop-filter:blur(30px) saturate(180%);backdrop-filter:blur(30px) saturate(180%)}
-  #btnMenu svg{width:22px;height:22px}
-  /* v40: the two corner buttons sit in the strip under the timeline, low in the home-indicator area; the timeline ends above them */
-  :root{--bb:max(6px, calc(env(safe-area-inset-bottom) - 20px))}
-  .fab{width:50px;height:50px;border-radius:16px;bottom:var(--bb);right:max(18px,calc(50% - 262px))}
-  .fab svg{width:22px;height:22px}
   body.tlfix .tl{padding-bottom:calc(env(safe-area-inset-bottom) + 12px)}
-  body.tlfix .jump,body.tlfix.barhide .jump{bottom:12px}
+  body.tlfix .jump{bottom:12px}
   .wrap{padding-top:calc(env(safe-area-inset-top) + 26px)}
   .hero{padding-top:6px}
   /* v41: tighter spacing so the timeline gets more room */
   .hero.card{padding-bottom:6px}
   #foot.foot{margin-top:0;margin-bottom:6px}
   body.tlfix .pastrow{margin-top:2px}
-  #tabs,body.barhide #tabs{top:auto;bottom:calc(var(--bb) + 60px);max-height:calc(100dvh - env(safe-area-inset-top) - var(--bb) - 110px);overflow-y:auto;
-    transform:translateX(calc(-100% - 20px))}
+  #tabs{overflow-y:auto}
   body.drawer #tabs{transform:none}
   #tabs button{height:46px}
 }
@@ -716,7 +641,7 @@ html.standalone{min-height:min(100lvh, calc(100% + env(safe-area-inset-top)))}
   .hmenu{left:0;background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.08)}
   .hadd{right:0;background:var(--green);color:var(--green-ink)}
   .hcorner:active{transform:translateY(-50%) scale(.94)}
-  #tabs,body.barhide #tabs{top:calc(env(safe-area-inset-top) + 80px);bottom:auto;max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 100px)}
+  #tabs{top:calc(env(safe-area-inset-top) + 80px);bottom:auto;max-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 100px)}
 }
 </style>
 </head>
@@ -725,16 +650,14 @@ html.standalone{min-height:min(100lvh, calc(100% + env(safe-area-inset-top)))}
 <script>if(navigator.standalone)document.documentElement.classList.add("standalone")</script>
 <div class="wrap">
   <div class="toprow">
-    <h1><button class="icon menubtn" id="btnMenu" aria-label="Open menu" aria-expanded="false"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><button class="acctbtn" id="btnAcct" aria-label="Switch account"><span id="acctName">Cash Flow</span> <span class="caret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button></h1>
+    <h1><button class="acctbtn" id="btnAcct" aria-label="Switch account"><span id="acctName">Cash Flow</span> <span class="caret"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span></button></h1>
     <div class="tacts">
       <button class="bankbtn" id="btnBank" aria-label="Open your bank app"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/></svg>Bank</button>
       <button class="icon" id="btnSettings" aria-label="Settings"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></button>
     </div>
   </div>
-  <div class="months" id="months"></div>
   <div id="queue"></div>
   <div id="leftcol"><div id="hero"></div><div class="foot" id="foot"></div><div id="calc"></div><div id="calbox" hidden></div></div>
-  <div id="periods"></div>
   <div class="dscrim" id="dscrim" hidden></div>
   <div class="seg" id="tabs">
     <div class="dhead">Views</div>
@@ -761,7 +684,6 @@ html.standalone{min-height:min(100lvh, calc(100% + env(safe-area-inset-top)))}
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const SERVER = "Google Sheets";
 const DEFAULT_ID = "14yvG4FmByEp2Te4gIPQ5FPQ2n6hwSN-quB7b95WRQ1U";
 // Accounts: one Google Sheet each (same layout). Each must also be listed in SHEETS in the Apps Script.
 const DEFAULT_ACCOUNTS = [{name:"MCU", id:DEFAULT_ID}, {name:"WNC", id:"109ZOrysstYv1adeMnFclmQD_dmK92RVXOx0kcpql18E"}];
@@ -992,7 +914,8 @@ async function gather(title, cacheOnly){
 }
 function applyData(d){ S.month = d.m; S.spend = d.sp; S.save = d.sv; S.periodMonths = d.months; }
 let loadSeq = 0;
-async function loadAll(pickTitle){
+let batchedTitles = new Set();   // month tabs the last full refresh already re-read in its one trip
+async function loadAll(pickTitle, timer){
   const seq = ++loadSeq, sid = S.id;
   const stale = () => seq !== loadSeq || sid !== S.id;
   const want = () => pickTitle || (S.month && S.month.title) || tabForSerial(todaySerial()) || S.tabs[S.tabs.length-1].title;
@@ -1012,11 +935,13 @@ async function loadAll(pickTitle){
   S.loading = !S.month; S.refreshing = !!S.month; S.fromCache = null; render();
   try{
     let d = null;
+    batchedTitles = new Set();
     if (S.tabs.length) {
       // newer Apps Script: everything in one trip, then read it back from the saved copies
       const title = want(), pT = periodTabs(todaySerial()).filter(t => t !== title);
       if (await prefetch([REQ.tabs(), REQ.month(title), REQ.log("Spending Log"), REQ.log("Savings Log"), ...pT.map(REQ.month)])) {
         if (stale()) return;
+        batchedTitles = new Set([title, ...pT]);
         await loadTabs(true); d = await gather(title, true); S.fromCache = null;
       }
     }
@@ -1034,7 +959,8 @@ async function loadAll(pickTitle){
     if (S.month && (!navigator.onLine || e.code === "server_unavailable" || e.code === "offline")) S.offline = true; else S.err = e;
   }
   S.loading = false; S.refreshing = false; render();
-  if (!S.err) tlRefreshOthers();
+  // the every-minute refresh only re-reads the month you're looking at; the other months on the timeline are re-read after a change, a manual refresh or coming back to the app
+  if (!S.err && !timer) tlRefreshOthers();
 }
 
 /* ---------- cleared marks ---------- */
@@ -1135,7 +1061,7 @@ function switchAccount(id){
   if (id === S.id || S.busy) { closeSheet(); return; }
   S.id = id; lsSet("cf_acct", id);
   S.tabs = []; S.month = null; S.periodMonths = null; S.spend = {items:[], lastRow:1}; S.save = {items:[], lastRow:1};
-  S.tlMonth = null; S.snapToday = true; S.err = null; S.title = ""; S.showPast = false;
+  S.snapToday = true; S.err = null; S.title = ""; S.showPast = false;
   closeSheet(); renderAcct(); render();
   if (mcp) loadAll().then(() => toast("Switched to " + acctName(id)));
 }
@@ -1364,28 +1290,6 @@ function periodTabs(T){
   const p = parts(T), nm = tabForSerial(toSerial(p.y, p.m + 1, 15)); if (nm) set.add(nm);
   return [...set];
 }
-function periodStats(){
-  const months = S.periodMonths || [];
-  if (!months.length) return null;
-  const rows = [];
-  months.forEach((m, mi) => m.rows.forEach(r => { if (r.kind === "blank" || r.serial == null) return; if (r.kind === "start" && mi > 0) return; rows.push(r); }));
-  const T = todaySerial();
-  const balAt = s => { let b = null; for (const r of rows) if (r.serial <= s) b = r.bal; return b; };
-  const firstBal = rows.length ? rows[0].bal : 0;
-  const lastSerial = rows.length ? rows[rows.length-1].serial : T;
-  const sumLog = (log, a, b) => log.items.filter(i => i.serial >= a && i.serial <= b).reduce((x, i) => x + i.amt, 0);
-  return periodRanges(T).map(p => {
-    const before = balAt(p.a - 1); const start = before == null ? firstBal : before;
-    const now = balAt(Math.min(T, p.b)); const end = balAt(p.b);
-    const inc = rows.filter(r => r.kind === "income" && r.serial >= p.a && r.serial <= p.b).reduce((x, r) => x + r.inc, 0);
-    const bills = rows.filter(r => r.kind === "bill" && r.serial >= p.a && r.serial <= p.b).reduce((x, r) => x + r.bill, 0);
-    const spent = sumLog(S.spend, p.a, Math.min(T, p.b));
-    const saved = sumLog(S.save, p.a, Math.min(T, p.b));
-    const pct = p.b === p.a ? 100 : Math.max(0, Math.min(100, Math.round((T - p.a + 1) / (p.b - p.a + 1) * 100)));
-    const partial = p.b > lastSerial;
-    return {...p, start, now: now == null ? start : now, end: end == null ? start : end, inc, bills, spent, saved, pct, partial};
-  });
-}
 function safeStats(){
   const months = S.periodMonths || []; if (!months.length) return null;
   const T = todaySerial(), p = parts(T);
@@ -1433,10 +1337,6 @@ function safeHTML(){
     <p class="est">Estimate only. It assumes every paycheck comes in at the amount on your sheet and every bill is paid as listed${s.partial ? ", and it only counts months that have a tab so far" : ""}. A smaller check means less to spend.</p>
   </div>`;
 }
-function periodsHTML(){
-  if (!S.periodMonths) return "";
-  return `<div class="pgrid" style="margin-top:12px">${safeHTML()}</div>`;
-}
 /* ---------- spending-plan summaries ---------- */
 function mergedRows(){
   const rows = [];
@@ -1476,79 +1376,6 @@ function planStats(payToday){
     endLabel: `${MON[parts(end).m]} ${parts(end).d}`};
 }
 function payWeek(T){ const back = (parts(T).w - 5 + 7) % 7; return [T - back, T - back + 6]; }
-function summariesHTML(){
-  const ps = planStats(); if (!ps) return "";
-  const T = ps.T, rows = mergedRows();
-  const tightRow = rows.filter(r => r.serial === ps.tight && r.kind === "bill").sort((a,b) => b.bill - a.bill)[0];
-  const daily = Math.max(0, ps.daily), leftToday = daily - ps.spentToday;
-  // 1) Daily allowance
-  let html = `<div class="card pcard safe wide">
-    <div class="ph"><b>Daily allowance</b><small>Covers every bill through ${esc(ps.endLabel)} and saves ${money(ps.goal)} each payday · Estimate</small></div>
-    ${ps.daily > 0
-      ? `<div class="pnow">${money(daily)}<span class="unit"> / day</span></div>
-         <div class="pmeta">≈ <b>${money(daily * 7)}</b> a week · <b class="${leftToday < 0 ? "neg" : ""}">${leftToday >= 0 ? money(leftToday) + " left today" : money(-leftToday) + " over today"}</b></div>`
-      : `<div class="pnow neg">$0.00<span class="unit"> / day</span></div>
-         <div class="pmeta neg">Saving ${money(ps.goal)} every payday doesn't fit before ${esc(short(ps.tight))}.${ps.dailyNoGoal > 0 ? ` Without the savings goal you'd have ${money(ps.dailyNoGoal)}/day.` : ""}</div>`}
-    <div class="pmeta" style="margin-top:6px">Tightest point: ${esc(short(ps.tight))}${tightRow ? ` (${esc(tightRow.desc)})` : ""} · keeps ${money(ps.cushion)} cushion</div>
-    <div class="pmeta">${ps.dailyNoGoal > 0 && ps.daily > 0 ? `Skip saving and it's ${money(ps.dailyNoGoal)}/day.` : ""}</div>
-    <button class="qsync" id="btnPlan" style="margin-top:10px">Adjust savings goal & cushion</button>
-    <p class="est">Estimate only. It assumes each paycheck comes in at the amount on your sheet, so a smaller check lowers it. Updates as you log spending.</p>
-  </div>`;
-  // 2) This pay week vs allowance
-  const [wa, wb] = payWeek(T);
-  const wSpent = S.spend.items.filter(i => i.serial >= wa && i.serial <= T).reduce((a, i) => a + i.amt, 0);
-  const wBudget = daily * (wb - wa + 1);
-  const pct = wBudget > 0 ? Math.min(100, Math.round(wSpent / wBudget * 100)) : 100;
-  html += `<div class="card pcard"><div class="ph"><b>This week's spending</b><small>${esc(short(wa))} – ${esc(short(wb))}</small></div>
-    <div class="pnow ${wSpent > wBudget ? "neg" : ""}">${money(wSpent)}</div>
-    <div class="pmeta">of ${money(wBudget)} allowance</div>
-    <div class="bar"><i style="width:${pct}%;${wSpent > wBudget ? "background:var(--warn)" : ""}"></i></div>
-    <div class="pflow"><span class="${wSpent > wBudget ? "neg" : "pin"}">${wSpent > wBudget ? money(wSpent - wBudget) + " over" : money(wBudget - wSpent) + " left this week"}</span></div></div>`;
-  // 3) Next paycheck
-  const next = rows.find(r => r.kind === "income" && r.serial > T);
-  if (next) {
-    const before = rows.filter(r => r.serial < next.serial).pop();
-    const due = rows.filter(r => r.kind === "bill" && r.serial > T && r.serial < next.serial).reduce((a, r) => a + r.bill, 0);
-    html += `<div class="card pcard"><div class="ph"><b>Next paycheck</b><small>${esc(dayLabel(next.serial))}</small></div>
-      <div class="pnow">${next.serial - T} day${next.serial - T === 1 ? "" : "s"}</div>
-      <div class="pmeta">${money(next.inc)} expected</div>
-      <div class="pflow" style="margin-top:8px"><span>−${money(due)} bills before it</span><span>Low before payday: ${money(before ? before.bal : ps.balNow)}</span></div></div>`;
-  }
-  // 4) Bills in the next 7 days
-  const soon = rows.filter(r => r.kind === "bill" && r.serial > T && r.serial <= T + 7 && r.bill);
-  html += `<div class="card pcard wide"><div class="ph"><b>Bills in the next 7 days</b><small>${soon.length ? money(soon.reduce((a, r) => a + r.bill, 0)) + " total" : "Nothing due"}</small></div>
-    ${soon.map(r => `<div class="lrow"><span>${esc(short(r.serial))} · ${esc(r.desc)}</span><b>${money(r.bill)}</b></div>`).join("")}</div>`;
-  // 5) Where the money goes this month
-  const mp = parts(T), ma = toSerial(mp.y, mp.m, 1), mb = toSerial(mp.y, mp.m + 1, 0);
-  const cats = new Map();
-  S.spend.items.filter(i => i.serial >= ma && i.serial <= mb && i.amt > 0).forEach(i => { const k = norm(i.text) || "other"; const c = cats.get(k) || {t: i.text || "Other", a: 0, n: 0}; c.a += i.amt; c.n++; cats.set(k, c); });
-  const top = [...cats.values()].sort((a, b) => b.a - a.a).slice(0, 5), topMax = top.length ? top[0].a : 1;
-  html += `<div class="card pcard wide"><div class="ph"><b>Where it's going</b><small>${MON[mp.m]} spending by description</small></div>
-    ${top.length ? top.map(c => `<div class="lrow"><span>${esc(c.t)}${c.n > 1 ? ` <small>×${c.n}</small>` : ""}</span><b>${money(c.a)}</b></div><div class="bar thin"><i style="width:${Math.round(c.a / topMax * 100)}%;background:var(--spend)"></i></div>`).join("") : `<div class="pmeta">Nothing logged yet this month.</div>`}</div>`;
-  // 6) Last 4 pay weeks
-  const weeks = []; for (let k = 3; k >= 0; k--) { const a = wa - 7 * k, b = a + 6; weeks.push({a, b, s: S.spend.items.filter(i => i.serial >= a && i.serial <= b).reduce((x, i) => x + i.amt, 0)}); }
-  const wMax = Math.max(1, ...weeks.map(w => w.s), daily * 7);
-  html += `<div class="card pcard wide"><div class="ph"><b>Weekly spending</b><small>Last 4 pay weeks · line = weekly allowance</small></div>
-    <div class="wk">${weeks.map(w => `<div class="wkc"><div class="wkb"><i style="height:${Math.round(w.s / wMax * 100)}%;${w.s > daily * 7 ? "background:var(--warn)" : ""}"></i><s style="bottom:${Math.round(daily * 7 / wMax * 100)}%"></s></div><b>${w.s ? "$" + Math.round(w.s) : "–"}</b><small>${esc(short(w.a))}</small></div>`).join("")}</div></div>`;
-  // 7) Savings progress
-  const sa = toSerial(mp.y, mp.m, 1);
-  const savedMonth = S.save.items.filter(i => i.serial >= sa && i.serial <= T).reduce((a, i) => a + i.amt, 0);
-  const paysMonth = rows.filter(r => r.kind === "income" && r.serial >= sa && r.serial <= mb).length;
-  const goalMonth = ps.goal * paysMonth;
-  const curTab = (S.periodMonths || []).find(m => m.title === tabForSerial(T));
-  html += `<div class="card pcard"><div class="ph"><b>Savings</b><small>${MON[mp.m]} goal ${money(goalMonth)}</small></div>
-    <div class="pnow">${money(savedMonth)}</div><div class="pmeta">saved this month</div>
-    <div class="bar"><i style="width:${goalMonth > 0 ? Math.min(100, Math.round(savedMonth / goalMonth * 100)) : 0}%;background:var(--save)"></i></div>
-    <div class="pflow"><span>Balance ${money(curTab ? curTab.sum.saveEnd : 0)}</span></div></div>`;
-  // 8) Bills this month: paid vs still to come
-  const mBills = rows.filter(r => r.kind === "bill" && r.serial >= ma && r.serial <= mb);
-  const paid = mBills.filter(r => r.serial <= T).reduce((a, r) => a + r.bill, 0), toCome = mBills.filter(r => r.serial > T).reduce((a, r) => a + r.bill, 0);
-  html += `<div class="card pcard"><div class="ph"><b>${MON[mp.m]} bills</b><small>${mBills.length} bills</small></div>
-    <div class="pnow">${money(toCome)}</div><div class="pmeta">still to come</div>
-    <div class="bar"><i style="width:${paid + toCome > 0 ? Math.round(paid / (paid + toCome) * 100) : 0}%"></i></div>
-    <div class="pflow"><span>${money(paid)} paid so far</span></div></div>`;
-  return `<div class="pgrid">${html}</div>`;
-}
 function planSheet(){
   openSheet(`<h2>Daily allowance settings</h2>
     <form id="planForm" autocomplete="off">
@@ -1559,19 +1386,6 @@ function planSheet(){
     </form>`);
 }
 
-function tilesHTML(){
-  const st = periodStats(); if (!st) return "";
-  return summariesHTML() + `<div class="day" style="padding-top:18px"><span>Running balance</span></div>
-  <div class="pgrid">${st.map(p => `
-    <div class="card pcard">
-      <div class="ph"><b>${esc(p.name)}</b><small>${esc(p.sub)}</small></div>
-      <div class="pnow ${p.now < 0 ? "neg" : ""}">${money(p.now)}</div>
-      <div class="pmeta">${p.key === "day" ? `Started ${money(p.start)}` : `Ends ${money(p.end)}${p.partial ? "*" : ""}`}</div>
-      ${p.key === "day" ? "" : `<div class="bar"><i style="width:${p.pct}%"></i></div>`}
-      <div class="pflow"><span class="pin">+${money(p.inc)}</span><span>−${money(p.bills)} bills</span><span>−${money(p.spent)} spent</span>${p.saved ? `<span>${money(p.saved)} saved</span>` : ""}</div>
-    </div>`).join("")}</div>
-  ${st.some(p => p.partial) ? `<p class="hint">* Only counts months that have a tab in the sheet so far.</p>` : ""}`;
-}
 
 let monthSeq = 0;
 async function switchMonth(title){
@@ -2003,17 +1817,13 @@ async function moveRows(m, row, desc, amt, note, scope, newSerial, opts = {}){
 
 /* ---------- render ---------- */
 function render(){
-  renderQueue(); renderMonths(); renderHero(); if (!$("#calc").innerHTML) renderCalc(); if (calOK && !$("#calbox").innerHTML) renderCal(); $("#periods").innerHTML = ""; renderView();
+  renderQueue(); renderHero(); if (!$("#calc").innerHTML) renderCalc(); if (calOK && !$("#calbox").innerHTML) renderCal(); renderView();
   document.querySelectorAll("#tabs button").forEach(b => b.classList.toggle("on", b.dataset.tab === S.view));
   $("#fab").hidden = !mcp || !!(S.err && !S.month);
   $("#foot").innerHTML = S.loadedAt ? `<span class="livefrom">Live from “${esc(S.title || "your sheet")}” · </span><button class="updbtn" id="btnRefresh" aria-label="Refresh now"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>${S.refreshing ? "Updating…" : "Updated " + S.loadedAt.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}</button> · <a href="https://docs.google.com/spreadsheets/d/${esc(S.id)}/edit" target="_blank" rel="noopener">Open sheet</a>` : "";
   $("#foot").innerHTML += `<div><button class="kbbtn" id="btnKeys" aria-label="Keyboard shortcuts">⌘</button></div>`;
   const nu = S.month ? unclearedList().length : 0, bd = $("#uncBadge");
   if (bd) { bd.hidden = !nu; bd.textContent = nu; }
-}
-function renderMonths(){
-  const cur = S.month && S.month.title;
-  $("#months").innerHTML = S.tabs.map(t => `<button class="chip ${t.title === cur ? "on" : ""}" data-month="${esc(t.title)}">${esc(t.title)}</button>`).join("");
 }
 function renderHero(){
   const h = $("#hero");
@@ -2041,7 +1851,6 @@ function renderHero(){
   const low = ahead.length ? Math.min(...ahead.map(r => r.bal)) : m.sum.lowest;
   const panel = S.heroPanel === "month" ? "month" : "";
   const dueWarn = /pill warn/.test(pill);
-  const hb = (id, txt, warn) => `<button class="hbtn2 ${panel === id ? "on" : ""} ${warn ? "warn" : ""}" data-hero="${id}" aria-expanded="${panel === id}">${txt}</button>`;
   const ss = safeStats();
   const panels = {
     pay: pill ? `<div class="pills">${pill}</div>` : `<div class="hp-empty">No more paychecks on this month's tab.</div>`,
@@ -2068,7 +1877,7 @@ function renderHero(){
   const uncBtn = `<button class="tline ${uOn ? "on" : ""}" id="btnUnc" aria-pressed="${uOn}">Uncleared <b>${nu}</b></button>`;
   const safeBtn = `<button class="tline ${panel === "month" ? "on" : ""}" data-hero="month" aria-expanded="${panel === "month"}">${ss ? `Safe to spend <b class="${ss.short ? "neg" : ""}">${money(ss.safe)}</b>` : "Month"}<span class="tcaret">${panel === "month" ? "▴" : "▾"}</span></button>`;
   h.innerHTML = `<div class="card hero">
-    <div class="herotop">${window.innerWidth < 900 ? `<button class="hcorner hmenu" id="hMenu" aria-label="Open menu"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><button class="hcorner hadd" id="hAdd" aria-label="Add"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>` : ""}<span class="lbl">${esc(label)}</span><button class="monthbtn" id="btnMonth" aria-label="Change month, showing ${esc(m.title)}">${esc(m.title)} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
+    <div class="herotop">${window.innerWidth < 900 ? `<button class="hcorner hmenu" id="hMenu" aria-label="Open menu" aria-expanded="${document.body.classList.contains("drawer")}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><button class="hcorner hadd" id="hAdd" aria-label="Add"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>` : ""}<span class="lbl">${esc(label)}</span><button class="monthbtn" id="btnMonth" aria-label="Change month, showing ${esc(m.title)}">${esc(m.title)} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
     <button class="big bigbtn ${bal < 0 ? "neg" : ""}" id="btnBal" aria-label="${esc(label)} ${money(bal)}. Show the timeline">${money(bal)}</button>
     <button class="cashline" id="btnSavLine" aria-label="Savings ${money(sav)}, total cash ${money(total)}. Open savings"><span>Savings <b>${money(sav)}</b></span><i></i><span>Total cash <b>${money(total)}</b></span></button>
     <div class="cashline textbtns">${safeBtn}<i></i>${uncBtn}</div>
@@ -2090,16 +1899,15 @@ function renderView(){
     if (tl) {
       if (keep && S.tl && keep.base === S.tl.base) tl.scrollTop = keep.top;
       else { const a = $("#tlAnchor"); tl.scrollTop = a && !$("#btnPast") ? Math.max(0, a.offsetTop - 4) : 0; }
-      S.tlMonth = S.month.title; S.snapToday = false;
+      S.snapToday = false;
       const btn = $("#btnToday"), a = $("#tlAnchor");
       const upd8 = () => { if (!a) { btn.hidden = true; return; } const d = a.offsetTop - tl.scrollTop; btn.hidden = Math.abs(d) < 120; btn.textContent = d < 0 ? "↑ Today" : "↓ Today"; };
-      let last = tl.scrollTop;
       let raf = 0;
       const follow = () => { raf = 0; if (!S.tl || !tl.isConnected) return;
         const t = tlMonthInView(tl);
         if (t && t !== S.month.title && S.tl.data[t]) { S.month = S.tl.data[t]; renderHero(); }
         if (tl.scrollHeight - tl.scrollTop - tl.clientHeight < 900) tlAppendNext(); };
-      tl.addEventListener("scroll", () => { upd8(); const y = tl.scrollTop; barOnScroll(y, last, a ? a.offsetTop : 0); last = y; if (!raf) raf = requestAnimationFrame(follow); }, {passive:true}); upd8();
+      tl.addEventListener("scroll", () => { upd8(); if (!raf) raf = requestAnimationFrame(follow); }, {passive:true}); upd8();
       setTimeout(follow, 50);
     }
   }
@@ -2112,7 +1920,7 @@ function renderView(){
   if (S.view === "savings") v.innerHTML += logHTML("save");
   if (S.view === "affirm") v.innerHTML += affirmHTML();
   if (S.view === "uncleared") v.innerHTML += unclearedHTML();
-  setBar(false); fitTimeline();
+  fitTimeline();
 }
 function itemHTML(r, b){
   r = b == null ? r : {...r, bal:b};
@@ -2211,11 +2019,11 @@ function tlAppendNext(){
   return tlAdding;
 }
 // swap in the fresh copy of a month that's already on screen, keeping your place
-async function tlRefresh(title){
+async function tlRefresh(title, savedCopy){
   if (!S.tl || title === S.month.title && S.tl.base === title) return;
   const sid = S.id;
   try {
-    const m = await loadMonth(title);
+    const m = await loadMonth(title, savedCopy);
     if (!S.tl || S.id !== sid || !S.tl.titles.includes(title)) return;
     S.tl.data[title] = m; S.tl.fresh[title] = 1;
     if (S.month.title === title) { S.month = m; renderHero(); }
@@ -2225,8 +2033,17 @@ async function tlRefresh(title){
     if (above) { const s2 = tl.querySelector(`[data-mtitle="${CSS.escape(title)}"]`); tl.scrollTop += s2.offsetHeight - h0; }
   } catch(e) {}
 }
-// after a refresh of the month in view, the months below may have new starting balances: re-read them quietly
-function tlRefreshOthers(){ if (!S.tl || !S.month) return; S.tl.fresh = {}; S.tl.fresh[S.month.title] = 1; S.tl.titles.filter(t => t !== S.month.title).reduce((p, t) => p.then(() => tlRefresh(t)), Promise.resolve()); }
+// after a refresh of the month in view, the other months on the timeline may have new starting balances:
+// re-read them quietly, all in one trip (months the refresh itself just read are taken from that copy)
+async function tlRefreshOthers(){
+  if (!S.tl || !S.month) return;
+  const sid = S.id, cur = S.month.title, others = S.tl.titles.filter(t => t !== cur), had = batchedTitles;
+  S.tl.fresh = {[cur]: 1};
+  const need = others.filter(t => !had.has(t));
+  let one = false;
+  if (need.length) { try { one = await prefetch(need.map(REQ.month)); } catch(e) {} }
+  for (const t of others) { if (!S.tl || S.id !== sid) return; await tlRefresh(t, had.has(t) || one); }
+}
 // which month is at the top of the timeline right now
 function tlMonthInView(tl){
   const top = tl.getBoundingClientRect().top + 24; let cur = null;
@@ -2470,7 +2287,7 @@ function settingsSheet(){
 document.addEventListener("click", e => {
   const t = e.target.closest("button, #scrim, #dscrim"); if (!t) return;
   if (t.id === "scrim" || t.hasAttribute("data-close")) return closeSheet();
-  if (t.id === "fab") return S.month && addSheet("expense");   // v42: + always opens on Expense
+  if (t.id === "fab") return S.month && addSheet("expense");   // + always opens on Expense (iPad button; the iPhone one is #hAdd)
   if (t.id === "btnRefresh") { if (!S.busy && mcp) { S.tabs = []; loadAll(); } return; }
   if (t.id === "btnAcct") return acctSheet();
   if (t.dataset.acct) { setDrawer(false); return switchAccount(t.dataset.acct); }
@@ -2491,7 +2308,7 @@ document.addEventListener("click", e => {
   if (t.dataset.month) { if (!$("#sheet").hidden) closeSheet(); return jumpToMonth(t.dataset.month); }
   if (t.dataset.hero) { S.heroPanel = S.heroPanel === t.dataset.hero ? "" : t.dataset.hero; lsSet("cf_hero", S.heroPanel); renderHero(); return fitTimeline(); }
   if (t.id === "btnMonth") return monthSheet();
-  if (t.id === "btnMenu" || t.id === "hMenu") return setDrawer(!document.body.classList.contains("drawer"));
+  if (t.id === "hMenu") return setDrawer(!document.body.classList.contains("drawer"));
   if (t.id === "hAdd") { setDrawer(false); return S.month && addSheet("expense"); }
   if (t.id === "dscrim") return setDrawer(false);
   if (t.dataset.tab) { setDrawer(false); S.view = t.dataset.tab; return render(); }
@@ -2514,7 +2331,6 @@ document.addEventListener("click", e => {
     return;
   }
   if (t.id === "btnPast") { S.showPast = true; S.snapToday = true; return renderView(); }
-  if (t.dataset.add) return S.month && addSheet(t.dataset.add);
   if (t.dataset.type) { lsSet("cf_lasttype", t.dataset.type); const amt = $("#fAmt") && $("#fAmt").value; addSheet(t.dataset.type); if (amt) $("#fAmt").value = amt; return; }
   if (t.dataset.chip != null) { $("#fText").value = t.dataset.chip; return; }
   if (t.id === "btnMonthEnd" || t.id === "btnMonthEnd2") return monthEndSheet();
@@ -2859,18 +2675,9 @@ document.addEventListener("paste", e => {
   e.preventDefault(); pasteNumber(t);
 });
 
-/* ---------- iPhone: balance card stays put while the timeline scrolls; tab bar tucks away when scrolling ahead ---------- */
+/* ---------- iPhone: balance card stays put while the timeline scrolls ---------- */
 const isPhone = () => window.innerWidth < 900;
-// v43: in the iPhone home-screen app, iOS 26 can stop the page ~60pt above the bottom of the screen
-// (window.innerHeight < screen.height). Then the menu / + buttons are pulled down into that strip, ~26pt above the screen edge.
-function fixBottomGap(){
-  const r = document.documentElement, gap = screen.height - window.innerHeight;
-  const standalone = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
-  // v44: turned off: iOS clips anything drawn in that strip, so the buttons were cut off. Kept for reference.
-  r.style.removeProperty("--bb");
-}
 function fitTimeline(){
-  fixBottomGap();
   const tl = $("#tl"), on = isPhone() && !!tl, pad = !isPhone() && !!tl;
   document.body.classList.toggle("tlfix", on);
   document.body.classList.toggle("tlfixpad", pad);
@@ -2887,21 +2694,9 @@ function fitTimeline(){
   }
   if (!on) { tl.style.height = ""; return; }
   if (window.scrollY) window.scrollTo(0, 0);
-  // v40: the timeline ends just above the menu / + buttons, which sit under it
-  const floor = window.innerHeight - 6;   // v45: no bottom buttons on iPhone; the timeline runs to the bottom
+  const floor = window.innerHeight - 6;   // nothing sits under the timeline on iPhone; it runs to the bottom
   tl.style.height = Math.max(260, floor - tl.getBoundingClientRect().top) + "px";
 }
-let barHidden = false;
-function setBar(hide){ if (hide === barHidden) return; barHidden = hide; document.body.classList.toggle("barhide", hide); }
-// hide while moving down past today; bring back when scrolling up or back near today
-function barOnScroll(y, last, todayY){
-  if (!isPhone()) return setBar(false);
-  const d = y - last;
-  if (y <= todayY + 60 || d < -6) setBar(false);
-  else if (d > 6) setBar(true);
-}
-let lastWin = 0;
-window.addEventListener("scroll", () => { const y = window.scrollY; if (!document.body.classList.contains("tlfix")) barOnScroll(y, lastWin, 120); lastWin = y; }, {passive:true});
 window.addEventListener("resize", () => fitTimeline());
 if (window.visualViewport) visualViewport.addEventListener("resize", () => fitTimeline());
 // v40: refit when the balance area above the timeline changes height (e.g. the "Updated" line wraps)
@@ -2917,7 +2712,7 @@ function setDrawer(open){
   if (open) renderDrawerAccts();
   document.body.classList.toggle("drawer", open);
   $("#dscrim").hidden = !open;
-  $("#btnMenu").setAttribute("aria-expanded", open ? "true" : "false");
+  const hm = $("#hMenu"); if (hm) hm.setAttribute("aria-expanded", open ? "true" : "false");
   if (open) { const on = document.querySelector("#tabs button.on") || document.querySelector("#tabs button"); if (on) on.focus({preventScroll:true}); }
 }
 (() => {
@@ -2944,8 +2739,6 @@ function setDrawer(open){
 document.addEventListener("click", e => { if (e.target.closest("h1") && !e.target.closest("#btnAcct")) window.scrollTo({top:0, behavior:"smooth"}); });
 
 /* ---------- boot ---------- */
-try { Object.keys(localStorage).filter(k => k.startsWith("cf_c:get_spreadsheet:") && k.includes("!A1:I160")).forEach(k => { const n = k.replace("!A1:I160", "!A1:I300"); if (!localStorage.getItem(n)) localStorage.setItem(n, localStorage.getItem(k)); localStorage.removeItem(k); }); } catch(e) {}
-try { Object.keys(localStorage).filter(k => k.startsWith("cf_c:get_values:") && k.includes("A2:E4000")).forEach(k => { const n = k.replace("A2:E4000", "A2:E20000"); if (!localStorage.getItem(n)) localStorage.setItem(n, localStorage.getItem(k)); localStorage.removeItem(k); }); } catch(e) {}
 renderAcct();
 render();
 (async () => {
@@ -2958,7 +2751,7 @@ async function startLive(){
   flushQueue();
   // live updates: re-read the sheet every minute while visible, and when coming back to the app
   const quiet = () => mcp && !S.busy && !S.loading && !S.refreshing && $("#sheet").hidden && document.visibilityState === "visible" && navigator.onLine;
-  setInterval(() => { if (!quiet()) return; if (S.queue.length) flushQueue(); else loadAll(); }, 60000);
+  setInterval(() => { if (!quiet()) return; if (S.queue.length) flushQueue(); else loadAll(null, true); }, 60000);
   document.addEventListener("visibilitychange", () => { if (quiet() && (!S.loadedAt || Date.now() - S.loadedAt > 20000)) { S.queue.length ? flushQueue() : loadAll(); } });
   window.addEventListener("online", () => { S.offline = false; renderQueue(); setTimeout(() => { flushQueue(); if (!S.queue.length) loadAll(); }, 1500); });
   window.addEventListener("offline", () => { S.offline = true; render(); });
