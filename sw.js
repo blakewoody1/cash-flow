@@ -1,6 +1,6 @@
 // Cash Flow — keeps the app saved on your device so it opens with no signal.
 // Bump VERSION whenever index.html changes so phones pick up the new version.
-const VERSION = "cashflow-v48";
+const VERSION = "cashflow-v49";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -11,7 +11,8 @@ self.addEventListener("install", e => {
 });
 
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  // Only clear out older copies of this app. Other apps on the same web address (like Tacoma) keep their own saved copies.
+  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k.startsWith("cashflow-") && k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
 // App files: show the saved copy instantly, refresh it in the background when online.

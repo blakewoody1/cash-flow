@@ -739,8 +739,14 @@ const norm = s => String(s||"").trim().toLowerCase().replace(/\s+/g," ");
 /* ---------- connector ---------- */
 const CFG = { url: lsGet("cf_api") || "", key: lsGet("cf_key") || "" };
 const READS = new Set(["get_spreadsheet", "get_values"]);
+// The key is only ever sent to a Google Apps Script web app link (https://script.google.com/…), never anywhere else
+function apiLinkOK(u){
+  try { const x = new URL(u); return x.protocol === "https:" && x.hostname === "script.google.com" && x.pathname.includes("/macros/"); }
+  catch(e){ return false; }
+}
 async function apiCall(tool, input){
   if (!CFG.url || !CFG.key) throw {code:"not_setup", message:"Add your Apps Script link and key in Settings."};
+  if (!apiLinkOK(CFG.url)) throw {code:"bad_response", message:"The link in Settings isn't a Google Apps Script web app link."};
   const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), READS.has(tool) ? 25000 : 60000);
   let res;
   try {
@@ -2430,6 +2436,7 @@ document.addEventListener("submit", e => {
     closeSheet(); render(); toast("Allowance updated"); return;
   }
   if (f.id === "setForm") {
+    { const u = $("#fApi").value.trim(); if (u && !apiLinkOK(u)) { toast("That isn't an Apps Script web app link. It should start with https://script.google.com/ and end in /exec.", 6000); $("#fApi").focus(); return; } }
     lsSet(akey("cf_bank"), $("#fBank").value.trim());
     const rows = [...document.querySelectorAll(".acctrow")].map(r => {
       const name = r.querySelector(".aName").value.trim(), v = r.querySelector(".aLink").value.trim();

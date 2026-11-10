@@ -18,7 +18,8 @@
  *   - formulas are only the running-balance and total formulas the app uses; anything else is saved as plain text
  *   - new rows are added in one step here, and each change has an ID so a retry never adds it twice
  *   - calendar changes only touch the Bills calendar; Affirm changes only update a plan's balance and add to Payment History
- *   - after 30 wrong keys in 10 minutes it stops answering for a while, and the Access log keeps only the last 500 lines
+ *   - wrong keys are always refused; the first 30 in any 10 minutes are noted in the Access log (which keeps only the last 500 lines)
+ *   - the right key always works, so nobody can lock you out by sending wrong ones — which is why KEY should be long and random
  *
  * Keeping the sheets current (runs by itself once set up):
  *   - On the 1st of every month it adds month tabs so there are always about 14 months ahead,
@@ -52,13 +53,15 @@ function sheetFor_(id) {
 }
 
 // Wrong-key attempts go to an "Access log" tab in the Cash Flow sheet (created the first time)
+// Only a known request name is written down, never text from the request itself (it comes from someone without the key).
 function logBad_(source, detail) {
   try {
+    const what = typeof detail === 'string' && KNOWN_.indexOf(detail) >= 0 ? detail : 'unrecognized request';
     const ss = SpreadsheetApp.getActive();
     let sh = ss.getSheetByName('Access log');
     if (!sh) { sh = ss.insertSheet('Access log'); sh.appendRow(['Time', 'Source', 'What was tried', 'Result']); sh.setFrozenRows(1); }
     if (sh.getLastRow() > 500) sh.deleteRows(2, sh.getLastRow() - 500);
-    sh.appendRow([new Date(), source, String(detail || '').slice(0, 60), 'Refused: wrong key']);
+    sh.appendRow([new Date(), source, what, 'Refused: wrong key']);
   } catch (err) { /* never let logging break a request */ }
 }
 
@@ -81,9 +84,15 @@ function json_(o) {
 
 /* ---------- 2. Web app: small read/write API ---------- */
 function api_(req) {
-  const cache = CacheService.getScriptCache(), tries = +(cache.get('bad') || 0);
-  if (tries >= 30) return { error: 'Too many wrong keys. Try again in 10 minutes.', code: 'needs_reauth' };
-  if (req.key !== KEY) { cache.put('bad', String(tries + 1), 600); logBad_('App', req.tool); return { error: 'Wrong key', code: 'needs_reauth' }; }
+  // The placeholder key is public (it's in the backup copy), so it never opens anything
+  if (KEY.indexOf('CHANGE-ME') === 0) return { error: 'Put your real key back on the KEY line in the Apps Script, then deploy a new version.', code: 'tool_error' };
+  if (typeof req.key !== 'string' || req.key !== KEY) {
+    // Wrong key: always refused. Only the first 30 in any 10 minutes are written to the Access log, so it can't be flooded.
+    // The right key keeps working no matter how many wrong ones arrive.
+    const cache = CacheService.getScriptCache(), tries = +(cache.get('bad') || 0);
+    if (tries < 30) { cache.put('bad', String(tries + 1), 600); logBad_('App', req.tool); }
+    return { error: 'Wrong key', code: 'needs_reauth' };
+  }
   const write = WRITES_.indexOf(req.tool) >= 0;
   const lock = write ? LockService.getScriptLock() : null;
   if (lock) lock.waitLock(30000);
@@ -96,6 +105,7 @@ function api_(req) {
   }
 }
 const WRITES_ = ['update_values', 'insert_dimension', 'add_item', 'add_log', 'cal_add', 'cal_update', 'cal_delete', 'affirm_pay'];
+const KNOWN_ = ['get_spreadsheet', 'get_values', 'batch', 'cal_list', 'affirm_get'].concat(WRITES_);
 function run_(tool, i, readOnly) {
   try {
     if (/^cal_/.test(tool)) {
@@ -233,10 +243,15 @@ function checkWrite_(sh, c1, c2, rows) {
 }
 // Only the formulas the app writes (running balance and the month totals). Anything else starting with = is saved as plain text.
 const OK_FORMULAS_ = [/^=F\d+\+D\d+-E\d+$/, /^=SUM\(D\d+:D\d+\)$/, /^=SUM\(E\d+:E\d+\)-E6-E9$/, /^=MIN\(F\d+:F\d+\)$/, /^=F\d+$/, /^=B4$/];
+// Text that starts with + - or @ can also be read as a formula, so it is kept as plain text too (plain numbers like -5 are left alone).
 function safeText_(v) {
-  if (v.charAt(0) !== '=') return v;
-  const f = v.replace(/\s+/g, '');
-  return OK_FORMULAS_.some(re => re.test(f)) ? f : "'" + v;
+  const c = v.charAt(0);
+  if (c === '=') {
+    const f = v.replace(/\s+/g, '');
+    return OK_FORMULAS_.some(re => re.test(f)) ? f : "'" + v;
+  }
+  if ((c === '+' || c === '-' || c === '@') && isNaN(Number(v))) return "'" + v;
+  return v;
 }
 
 // Each change from the app carries an ID; remember the ones already done (kept about 90 days)
