@@ -44,6 +44,7 @@ h1{font-size:22px;margin:0;letter-spacing:-.01em}
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:14px}
 .statbtn{text-align:left;border:1.5px solid var(--accent);background:var(--accent-soft)}
 .statbtn:active{transform:scale(.97)}
+.dayflash .card{box-shadow:0 0 0 2px var(--accent);transition:box-shadow .3s}
 .safeval{color:var(--accent)}
 .stat{background:var(--bg);border-radius:12px;}
 .stat{padding:9px 7px!important;min-width:0}
@@ -1839,6 +1840,8 @@ function renderHero(){
   }
   const ahead = rows.filter(r => r.serial != null && r.serial >= (inMonth ? T : firstS));
   const low = ahead.length ? Math.min(...ahead.map(r => r.bal)) : m.sum.lowest;
+  const lowRow = ahead.find(r => r.bal === low);
+  S.lowAt = lowRow ? {title: m.title, serial: lowRow.serial, bal: low} : null;   // v51: the Low ahead tile jumps here
   const panel = S.heroPanel === "month" ? "month" : "";
   const dueWarn = /pill warn/.test(pill);
   const ss = safeStats();
@@ -1847,10 +1850,10 @@ function renderHero(){
     cleared: clearedLine(),
     month: `<div class="stats">
       ${(() => { const o = monthEndOutlook(m), lv = o ? o.level : (m.sum.ending < getCushion() ? "bad" : "ok");
-        return `<button class="stat statbtn" id="btnMonthEnd"><small>Month end ›</small><b class="${lv === "bad" ? "neg" : lv === "warn" ? "warnc" : ""}">${money(m.sum.ending)}</b></button>`; })()}
-      <div class="stat"><small>${inMonth ? "Low ahead" : "Lowest"}</small><b class="${low < 300 ? "neg" : ""}">${money(low)}</b></div>
-      <div class="stat"><small>End savings</small><b>${money(m.sum.saveEnd)}</b></div>
-      ${ss ? `<button class="stat statbtn" id="btnSafe"><small>Safe to spend ›</small><b class="${ss.short ? "neg" : "safeval"}">${money(ss.safe)}</b></button>` : ""}
+        return `<button class="stat statbtn" id="btnMonthEnd"><small>Month end</small><b class="${lv === "bad" ? "neg" : lv === "warn" ? "warnc" : ""}">${money(m.sum.ending)}</b></button>`; })()}
+      <button class="stat statbtn" id="btnLow"><small>${inMonth ? "Low ahead" : "Lowest"}</small><b class="${low < 300 ? "neg" : ""}">${money(low)}</b></button>
+      <button class="stat statbtn" id="btnEndSav"><small>End savings</small><b>${money(m.sum.saveEnd)}</b></button>
+      ${ss ? `<button class="stat statbtn" id="btnSafe"><small>Safe to spend</small><b class="${ss.short ? "neg" : "safeval"}">${money(ss.safe)}</b></button>` : ""}
     </div>`,
     totals: `<div class="totals"><div class="tgrid">
         <span><small>Income</small><b>${money(m.sum.income)}</b></span><span><small>Bills</small><b>${money(m.sum.bills)}</b></span>
@@ -1967,7 +1970,7 @@ function monthTlHTML(m, isBase){
     if (!todayDone && !hasToday && g.s != null && g.s > T && groups[0].s <= T) { out += `<div class="today" id="tlAnchor">Today · ${esc(dayLabel(T))}</div>`; todayDone = true; }
     const isToday = g.s === T;
     const endBal = g.rows[g.rows.length-1].bal;
-    out += `<div class="${g.s != null && g.s < T ? "past" : ""}" ${isToday ? 'id="tlAnchor"' : ""}><div class="day ${isToday ? "isToday" : ""}"><span>${isToday ? "Today · " : ""}${g.s != null ? esc(dayLabel(g.s)) : ""}</span><span class="bal ${endBal < 0 ? "neg" : ""}">${money(endBal)}</span></div><div class="card group">${g.rows.map(e => e.pend ? pendHTML(e.pend, e.bal) : e.it ? expHTML(e.it, e.bal) : itemHTML(e.row, e.bal)).join("")}</div></div>`;
+    out += `<div class="${g.s != null && g.s < T ? "past" : ""}" ${g.s != null ? `data-day="${g.s}"` : ""} ${isToday ? 'id="tlAnchor"' : ""}><div class="day ${isToday ? "isToday" : ""}"><span>${isToday ? "Today · " : ""}${g.s != null ? esc(dayLabel(g.s)) : ""}</span><span class="bal ${endBal < 0 ? "neg" : ""}">${money(endBal)}</span></div><div class="card group">${g.rows.map(e => e.pend ? pendHTML(e.pend, e.bal) : e.it ? expHTML(e.it, e.bal) : itemHTML(e.row, e.bal)).join("")}</div></div>`;
   }
   return out || `<div class="empty">Nothing on ${esc(m.title)} yet.</div>`;
 }
@@ -2050,6 +2053,38 @@ async function jumpToMonth(title){
   if (!sec) return;
   tl.scrollTop = sec.offsetTop - tl.offsetTop - (title === S.tl.base ? 0 : 2);
   if (S.tl.data[title] && S.month.title !== title) { S.month = S.tl.data[title]; renderHero(); }
+}
+
+// v51: jump the timeline to a day (the Low ahead tile) and outline it for a moment
+async function jumpToDay(title, serial){
+  setDrawer(false);
+  if (S.view !== "timeline") { S.view = "timeline"; render(); }
+  if (!S.tl || !S.tl.titles.includes(title)) await jumpToMonth(title);
+  if (S.tl && title === S.tl.base && !S.showPast && $("#btnPast") && serial < todaySerial()) { S.showPast = true; S.snapToday = true; renderView(); }
+  const tl = $("#tl"), sec = tl && tl.querySelector(`[data-mtitle="${CSS.escape(title)}"]`);
+  if (!sec) return false;
+  const days = [...sec.querySelectorAll("[data-day]")];
+  const el = days.find(d => +d.dataset.day >= serial) || days[days.length - 1];
+  if (!el) return false;
+  tl.scrollTop += el.getBoundingClientRect().top - tl.getBoundingClientRect().top - 6;
+  el.classList.add("dayflash"); setTimeout(() => el.classList.remove("dayflash"), 2200);
+  return true;
+}
+function endSavingsSheet(){
+  const m = S.month, T = todaySerial(), dated = m.rows.filter(r => r.serial != null);
+  if (!dated.length) return;
+  const a = dated[0].serial, b = dated[dated.length - 1].serial;
+  const items = S.save.items.filter(i => i.serial >= a && i.serial <= b);
+  const moved = round2(items.filter(i => i.serial <= T).reduce((x, i) => x + i.amt, 0));
+  const planned = round2(m.sum.saveEnd - m.sum.saveStart - moved);
+  const line = (l, v, sign) => `<div class="lrow"><span>${l}</span><b>${sign && v > 0 ? "+" : v < 0 ? "−" : ""}${money(Math.abs(v))}</b></div>`;
+  openSheet(`<div class="shead"><button type="button" class="hbtn" data-close>Close</button><b>${esc(m.title)} savings</b><span></span></div>
+    <div class="card pcard"><div class="ph"><b>Ends ${esc(m.title)} with</b><small>Savings balance on your ${esc(m.title)} tab</small></div>
+      <div class="pnow">${money(m.sum.saveEnd)}</div>
+      ${line("Start of the month", m.sum.saveStart)}
+      ${line(T >= b ? "Moved during the month" : "Moved so far (Savings Log)", moved, true)}
+      ${Math.abs(planned) >= 0.005 ? line(T >= b ? "Other changes on the tab" : "Still planned on the tab", planned, true) : ""}</div>
+    <div class="btns"><button type="button" class="btn" id="btnOpenSav">Open Savings</button></div>`);
 }
 
 function logHTML(which){
@@ -2344,6 +2379,10 @@ document.addEventListener("click", e => {
   if (t.id === "btnSync") return flushQueue(true);
   if (t.id === "btnPlan") return planSheet();
   if (t.id === "btnKeys") return keysSheet();
+  if (t.id === "btnLow") { const L = S.lowAt; if (!L) return; closeSheet();
+    return jumpToDay(L.title, L.serial).then(ok => { if (ok) toast(`Lowest point: ${money(L.bal)} on ${dayLabel(L.serial)}`, 3500); }); }
+  if (t.id === "btnEndSav") return endSavingsSheet();
+  if (t.id === "btnOpenSav") { closeSheet(); S.view = "savings"; S.snapToday = true; return render(); }
   if (t.id === "btnSafe") { openSheet(`<div class="pgrid">${safeHTML()}</div><div class="btns"><button type="button" class="btn" data-close>Close</button></div>`); return; }
   if (t.dataset.clr) {
     const wasOpen = !$("#sheet").hidden, box = t.closest(".cstat"), nowCleared = !(box && box.classList.contains("on"));
