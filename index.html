@@ -833,7 +833,6 @@ async function loadTabs(cacheOnly){
   serverAdds = feats.indexOf("add_item") >= 0 && feats.indexOf("add_log") >= 0;
   const hadCal = calOK; calOK = feats.indexOf("calendar") >= 0; affirmOK = feats.indexOf("affirm") >= 0;
   cfgOK = feats.indexOf("settings") >= 0; renameOK = feats.indexOf("affirm_rename") >= 0;
-  if (cfgOK && !cacheOnly) setTimeout(syncCfg, 0);
   if (calOK && !hadCal) setTimeout(() => { if (matchMedia("(min-width: 900px)").matches) loadCal(); }, 0);
   if (affirmOK && !S.affirm) setTimeout(() => loadAffirm(), 0);
   // Safety: the Apps Script must confirm it opened this account's sheet (older scripts always open Cash Flow)
@@ -952,6 +951,7 @@ async function loadAll(pickTitle, timer){
     applyData(d);
     S.loadedAt = S.fromCache ? new Date(S.fromCache) : new Date();
     S.offline = !!S.fromCache; S.err = null;
+    if (!timer && !S.offline) setTimeout(syncCfg, 0);   // v53: shared settings are checked after every fresh load (v52 only did it on first connect)
   } catch(e){
     if (stale()) return;
     if (S.month && (!navigator.onLine || e.code === "server_unavailable" || e.code === "offline")) S.offline = true; else S.err = e;
