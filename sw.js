@@ -1,6 +1,6 @@
 // Cash Flow — keeps the app saved on your device so it opens with no signal.
 // Bump VERSION whenever index.html changes so phones pick up the new version.
-const VERSION = "cashflow-v51";
+const VERSION = "cashflow-v52";
 const FILES = ["./", "./index.html", "./manifest.webmanifest", "./icon-180.png", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {

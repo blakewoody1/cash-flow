@@ -610,6 +610,9 @@ a{color:var(--ink)}
 }
 .ponly,#tabs .ponly{display:none}
 @media (max-width: 899px){ #tabs .ponly{display:flex} #tabs .dhead.ponly,#tabs .dsep.ponly{display:block} }
+@media (max-width: 899px){ #foot{display:none!important} }
+.dmeta{margin-left:auto;white-space:nowrap;font-size:13px;color:var(--muted);font-weight:600}
+.lowtag{font-style:normal;font-size:10px;font-weight:700;letter-spacing:.04em;padding:2px 7px;border-radius:999px;margin-left:8px;background:color-mix(in srgb,var(--bill) 16%,transparent);color:var(--bill);vertical-align:1px}
 .dacct small{margin-left:auto;font-size:13px;color:var(--accent);font-weight:700}
 /* v45 (iPhone): menu and + live on the top line of the balance card (left / right); the bottom buttons are gone and the timeline runs to the bottom */
 /* v46: iOS 26 gives a home-screen app a viewport one status bar short of the screen while the page is shorter than the screen
@@ -659,6 +662,8 @@ html.standalone{min-height:min(100lvh, calc(100% + env(safe-area-inset-top)))}
     <div id="dAccts" class="ponly" style="flex-direction:column;gap:2px"></div>
     <div class="dsep ponly"></div>
     <button class="ponly" id="dBank"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 10l9-6 9 6"/><path d="M5 10v8M9.5 10v8M14.5 10v8M19 10v8"/><path d="M3 20h18"/></svg><span>Bank</span></button>
+    <button class="ponly" id="dSheet"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18M3 15h18M9 4v16"/></svg><span>Open sheet</span></button>
+    <button class="ponly" id="dRefresh"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg><span>Refresh</span><small class="dmeta" id="dUpd"></small></button>
     <button class="ponly" id="dSettings"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span>Settings</span></button>
   </div>
   <div id="view"></div>
@@ -803,7 +808,7 @@ const REQ = {
 // the Apps Script says whether it can answer several reads in one trip (newer versions list "batch")
 let batchOK = false;
 // newer Apps Script adds rows in one step on its side, and remembers each change's ID so a retry never adds it twice
-let serverAdds = false, calOK = false, affirmOK = false;
+let serverAdds = false, calOK = false, affirmOK = false, cfgOK = false, renameOK = false;
 const newOpId = () => Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 10);
 // One trip to the Apps Script for many reads; saves each answer like a normal read. Returns false if it couldn't.
 async function prefetch(reqs){
@@ -827,6 +832,8 @@ async function loadTabs(cacheOnly){
   batchOK = feats.indexOf("batch") >= 0;
   serverAdds = feats.indexOf("add_item") >= 0 && feats.indexOf("add_log") >= 0;
   const hadCal = calOK; calOK = feats.indexOf("calendar") >= 0; affirmOK = feats.indexOf("affirm") >= 0;
+  cfgOK = feats.indexOf("settings") >= 0; renameOK = feats.indexOf("affirm_rename") >= 0;
+  if (cfgOK && !cacheOnly) setTimeout(syncCfg, 0);
   if (calOK && !hadCal) setTimeout(() => { if (matchMedia("(min-width: 900px)").matches) loadCal(); }, 0);
   if (affirmOK && !S.affirm) setTimeout(() => loadAffirm(), 0);
   // Safety: the Apps Script must confirm it opened this account's sheet (older scripts always open Cash Flow)
@@ -1337,6 +1344,33 @@ function mergedRows(){
 const getGoal = () => { const v = parseFloat(lsGet(akey("cf_goal"))); return isNaN(v) ? 50 : v; };
 const getCushion = () => { const v = parseFloat(lsGet(akey("cf_cushion"))); return isNaN(v) ? 100 : v; };
 // payToday: a payment made today (e.g. an Affirm payoff), to see what it does to the allowance
+/* v52: savings goal, buffer and the extra Affirm payment are shared between devices (kept by the Apps Script, one note per account).
+   A change made here is sent right away (or on the next open if there's no signal); otherwise this device takes what's stored. */
+const cfgLocal = sid => { const n = k => { const v = parseFloat(lsGet(akey(k, sid))); return isNaN(v) ? null : v; };
+  const o = {goal: n("cf_goal") ?? 50, cushion: n("cf_cushion") ?? 100}; if (sid === DEFAULT_ID) o.affx = getAffExtra(); return o; };
+function cfgChanged(sid){ lsSet(akey("cf_cfgdirty", sid || S.id), String(Date.now())); cfgSeen = {}; syncCfg(); }
+let cfgBusy = false, cfgSeen = {};
+async function syncCfg(){
+  if (!cfgOK || cfgBusy || !mcp || !navigator.onLine) return;
+  cfgBusy = true;
+  try {
+    for (const sid of [...new Set([S.id, DEFAULT_ID])]) {
+      const dk = akey("cf_cfgdirty", sid), mark = lsGet(dk);
+      if (mark) { await apiCall("settings_set", {spreadsheetId: sid, settings: cfgLocal(sid)}); if (lsGet(dk) === mark) lsSet(dk, ""); continue; }
+      if (sid !== S.id || Date.now() - (cfgSeen[sid] || 0) < 5 * 60000) continue;
+      cfgSeen[sid] = Date.now();
+      const r = await apiCall("settings_get", {spreadsheetId: sid}), st = r && r.settings;
+      if (!st) { await apiCall("settings_set", {spreadsheetId: sid, settings: cfgLocal(sid)}); continue; }   // first device to open sets the shared copy
+      const loc = cfgLocal(sid); let diff = false;
+      for (const [k, key] of [["goal", akey("cf_goal", sid)], ["cushion", akey("cf_cushion", sid)], ["affx", "cf_affx"]]) {
+        if (typeof st[k] !== "number" || !(k in loc) || Math.abs(st[k] - loc[k]) < 0.005) continue;
+        lsSet(key, String(st[k])); diff = true;
+      }
+      if (diff && sid === S.id) { toast("Savings goal and buffer updated from your other device", 3500); render(); }
+    }
+  } catch(e) { /* tries again on the next open */ }
+  cfgBusy = false;
+}
 function planStats(payToday){
   const rows = mergedRows(); if (!rows.length) return null;
   const x = payToday || 0;
@@ -1446,17 +1480,15 @@ function overviewHTML(){
   const daily = Math.max(0, ps.daily);
   const [wa, wb] = payWeek(T);
   const wSpent = S.spend.items.filter(i => i.serial >= wa && i.serial <= T).reduce((a, i) => a + i.amt, 0);
-  const wBudget = daily * (wb - wa + 1), over = wSpent > wBudget;
-  const pct = wBudget > 0 ? Math.min(100, Math.round(wSpent / wBudget * 100)) : 100;
-  // 1) Spending room: the allowance and this pay week together
+  // 1) Safe to spend: the same headline number as the top of the screen, then what it means day to day (v52)
+  const ss = safeStats();
   let html = `<div class="card pcard safe wide">
-    <div class="ph"><b>Spending room</b><small>Covers every bill through ${esc(ps.endLabel)}, saves ${money(ps.goal)} each payday, keeps ${money(ps.cushion)} in checking · Estimate</small></div>
-    ${ps.daily > 0
-      ? `<div class="pnow">${money(daily)}<span class="unit"> / day</span></div><div class="pmeta">≈ ${money(daily * 7)} a week</div>`
-      : `<div class="pnow neg">$0.00<span class="unit"> / day</span></div><div class="pmeta neg">Saving ${money(ps.goal)} every payday doesn't fit before ${esc(short(ps.tight))}.${ps.dailyNoGoal > 0 ? ` Without it: ${money(ps.dailyNoGoal)}/day.` : ""}</div>`}
-    <div class="pmeta" style="margin-top:10px"><b>This pay week</b> (${esc(short(wa))} – ${esc(short(wb))}): ${money(wSpent)} of ${money(wBudget)}</div>
-    <div class="bar"><i style="width:${pct}%;${over ? "background:var(--warn)" : ""}"></i></div>
-    <div class="pflow"><span class="${over ? "neg" : ""}">${over ? money(wSpent - wBudget) + " over" : money(wBudget - wSpent) + " left this week"}</span><span>Tightest day ${esc(short(ps.tight))}${tightRow ? ` (${esc(tightRow.desc)})` : ""}</span></div>
+    <div class="ph"><b>Safe to spend</b><small>${ss ? `The most you can spend through ${esc(ss.endLabel)} and still keep ${money(ps.cushion)} in checking` : `Keeps ${money(ps.cushion)} in checking`} · Estimate</small></div>
+    ${ss ? `<div class="pnow ${ss.short ? "neg" : ""}">${money(ss.safe)}</div>${ss.short ? `<div class="pmeta neg">${money(ss.short)} short of your buffer on ${esc(short(ss.lowDay))}</div>` : ""}` : ""}
+    <div class="lrow" style="margin-top:8px"><span>If you also save ${money(ps.goal)} each payday</span><b class="${ps.daily > 0 ? "" : "neg"}">${ps.daily > 0 ? money(daily) + " / day" : "Doesn't fit"}</b></div>
+    ${ps.daily > 0 ? "" : `<div class="pmeta neg" style="margin-bottom:6px">Saving ${money(ps.goal)} every payday doesn't fit before ${esc(short(ps.tight))}.${ps.dailyNoGoal > 0 ? ` Without it: ${money(ps.dailyNoGoal)}/day.` : ""}</div>`}
+    <div class="lrow"><span>Spent this pay week <small>(${esc(short(wa))} – ${esc(short(wb))})</small></span><b>${money(wSpent)}</b></div>
+    <div class="lrow"><span>Tightest day</span><b>${esc(short(ps.tight))}${tightRow ? ` · ${esc(tightRow.desc)}` : ""}</b></div>
     <button class="qsync" id="btnPlan" style="margin-top:10px">Savings goal & buffer</button>
   </div>`;
   // 2) Coming up: next paycheck and every bill before it
@@ -1585,7 +1617,7 @@ function affirmPaySheet(id, amt){
   const p = S.affirm && S.affirm.plans.find(x => x.id === id); if (!p) return;
   const a = amt != null ? +amt : p.balance;
   openSheet(`<div class="shead"><button type="button" class="hbtn" data-close>Cancel</button><b>Affirm payment</b><button type="submit" form="affForm" class="hbtn primary">Record</button></div>
-    <h2>${esc(p.name)}</h2><div class="hint" style="margin-top:-6px">Balance ${money(p.balance)} · ${money(p.payment)}/mo · ${(p.apr * 100).toFixed(2)}% APR</div>
+    ${renameOK ? `<input class="titlein" id="fAffName" value="${esc(p.name)}" maxlength="60" data-plan="${esc(p.id)}" aria-label="Plan name" autocomplete="off"><button type="button" class="qsync" id="btnAffRename" hidden style="margin:0 0 8px">Save name</button>` : `<h2>${esc(p.name)}</h2>`}<div class="hint" style="margin-top:${renameOK ? "0" : "-6px"}">Balance ${money(p.balance)} · ${money(p.payment)}/mo · ${(p.apr * 100).toFixed(2)}% APR</div>
     <form id="affForm" data-plan="${esc(p.id)}" autocomplete="off">
       <label class="field"><span>Amount paid</span><input class="money-in" id="fAmt" inputmode="decimal" value="${a.toFixed(2)}"></label>
       <div class="seg-sm" style="margin:-4px 0 10px"><button type="button" data-affset="${p.balance.toFixed(2)}">Pay it off · ${money(p.balance)}</button><button type="button" data-affset="${p.payment.toFixed(2)}">Regular · ${money(p.payment)}</button></div>
@@ -1596,6 +1628,21 @@ function affirmPaySheet(id, amt){
       <p class="hint">Updates the balance in your tracker and adds a line to its Payment History. Make the payment in the Affirm app too — this only records it.</p>
     </form>`);
 }
+// v52: rename a plan (writes the name in the tracker's Plan / Merchant column; needs a signal)
+async function renameAffirm(){
+  const inp = $("#fAffName"); if (!inp) return;
+  const id = inp.dataset.plan, p = S.affirm && S.affirm.plans.find(x => x.id === id), name = inp.value.trim().slice(0, 60);
+  if (!p || !name || name === p.name) return;
+  if (!navigator.onLine) { toast("Renaming needs a signal"); return; }
+  const btn = $("#btnAffRename"); if (btn) { btn.disabled = true; btn.textContent = "Saving…"; }
+  try {
+    await apiCall("affirm_rename", {planId: id, name});
+    p.name = name; toast("Renamed"); if (btn) btn.hidden = true;
+    renderView(); loadAffirm(true);
+  } catch(e) { toast((e && e.message) || "Couldn't rename it. Try again."); }
+  if (btn) { btn.disabled = false; btn.textContent = "Save name"; }
+}
+document.addEventListener("input", e => { if (e.target.id !== "fAffName") return; const b = $("#btnAffRename"), p = S.affirm && S.affirm.plans.find(x => x.id === e.target.dataset.plan); if (b && p) b.hidden = !e.target.value.trim() || e.target.value.trim() === p.name; });
 // Later Affirm bills for a plan: bills whose name mentions Affirm with the plan's monthly amount, after a date
 async function laterAffirmBills(payment, after){
   const out = [], later = S.tabs.filter(t => { const k = tabKey(t.title), p = parts(after); return k >= p.y * 12 + p.m; });
@@ -1813,8 +1860,19 @@ function render(){
   $("#fab").hidden = !mcp || !!(S.err && !S.month);
   $("#foot").innerHTML = S.loadedAt ? `<span class="livefrom">Live from “${esc(S.title || "your sheet")}” · </span><button class="updbtn" id="btnRefresh" aria-label="Refresh now"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.34-5.66"/><path d="M20 4v5h-5"/></svg>${S.refreshing ? "Updating…" : "Updated " + S.loadedAt.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"})}</button> · <a href="https://docs.google.com/spreadsheets/d/${esc(S.id)}/edit" target="_blank" rel="noopener">Open sheet</a>` : "";
   $("#foot").innerHTML += `<div><button class="kbbtn" id="btnKeys" aria-label="Keyboard shortcuts">⌘</button></div>`;
+  drawerUpd();
   const nu = S.month ? unclearedList().length : 0, bd = $("#uncBadge");
   if (bd) { bd.hidden = !nu; bd.textContent = nu; }
+}
+// the month's lowest balance from today on (or of the whole month when it isn't the current one), and its day
+function lowPoint(m){
+  const T = todaySerial(), dated = m.rows.filter(r => r.kind !== "blank" && r.serial != null);
+  if (!dated.length) return null;
+  const inMonth = T >= dated[0].serial && T <= dated[dated.length - 1].serial + 3;
+  const ahead = dated.filter(r => r.serial >= (inMonth ? T : dated[0].serial));
+  if (!ahead.length) return null;
+  const bal = Math.min(...ahead.map(r => r.bal));
+  return {serial: ahead.find(r => r.bal === bal).serial, bal};
 }
 function renderHero(){
   const h = $("#hero");
@@ -1840,8 +1898,8 @@ function renderHero(){
   }
   const ahead = rows.filter(r => r.serial != null && r.serial >= (inMonth ? T : firstS));
   const low = ahead.length ? Math.min(...ahead.map(r => r.bal)) : m.sum.lowest;
-  const lowRow = ahead.find(r => r.bal === low);
-  S.lowAt = lowRow ? {title: m.title, serial: lowRow.serial, bal: low} : null;   // v51: the Low ahead tile jumps here
+  const lp0 = lowPoint(m);
+  S.lowAt = lp0 ? {title: m.title, serial: lp0.serial, bal: lp0.bal} : null;   // v51: the Low ahead tile jumps here
   const panel = S.heroPanel === "month" ? "month" : "";
   const dueWarn = /pill warn/.test(pill);
   const ss = safeStats();
@@ -1873,7 +1931,7 @@ function renderHero(){
     <div class="herotop">${window.innerWidth < 900 ? `<button class="hcorner hmenu" id="hMenu" aria-label="Open menu" aria-expanded="${document.body.classList.contains("drawer")}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><path d="M9 4v16"/></svg></button><button class="hcorner hadd" id="hAdd" aria-label="Add"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></button>` : ""}<span class="lbl">${esc(label)}</span><button class="monthbtn" id="btnMonth" aria-label="Change month, showing ${esc(m.title)}">${esc(m.title)} <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button></div>
     <button class="big bigbtn ${bal < 0 ? "neg" : ""}" id="btnBal" aria-label="${esc(label)} ${money(bal)}. Show the timeline">${money(bal)}</button>
     <button class="cashline" id="btnSavLine" aria-label="Savings ${money(sav)}, total cash ${money(total)}. Open savings"><span>Savings <b>${money(sav)}</b></span><i></i><span>Total cash <b>${money(total)}</b></span></button>
-    <div class="cashline textbtns">${safeBtn}<i></i>${uncBtn}</div>
+    <div class="cashline textbtns">${safeBtn}${nu || uOn ? `<i></i>${uncBtn}` : ""}</div>
     ${panel && panels[panel] ? `<div class="heropanel">${panels[panel]}</div>` : ""}
   </div>`;
 }
@@ -1939,7 +1997,7 @@ function expHTML(it, bal){
 function monthTlHTML(m, isBase){
   const T = todaySerial();
   // Sheet rows, minus the weekly "Everyday spending" lumps…
-  const entries = m.rows.filter(r => r.kind !== "blank" && r.kind !== "spend").map((r, i) => ({s:r.serial, o:0, i, row:r}));
+  const entries = m.rows.filter(r => r.kind !== "blank" && r.kind !== "spend" && !(r.kind === "save" && !r.bill)).map((r, i) => ({s:r.serial, o:0, i, row:r}));
   // …plus each Spending Log expense that this month tab counts, on its own date
   S.spend.items.filter(it => it.amt && tabForSerial(it.serial) === m.title).forEach((it, i) => entries.push({s:it.serial, o:1, i, it}));
   // changes saved on this device but not synced yet show up right away, marked as waiting
@@ -1964,13 +2022,15 @@ function monthTlHTML(m, isBase){
   const pastN = groups.filter(g => g.s != null && g.s < T).length;
   const fold = isBase && !S.showPast && pastN > 0 && groups.some(g => g.s != null && g.s >= T);
   if (fold) out += `<button class="pastrow" id="btnPast">Show ${pastN} earlier day${pastN === 1 ? "" : "s"} <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button>`;
+  // v52: tag the day the month's balance is lowest (same number as the Low ahead tile)
+  const lp = lowPoint(m), tagG = lp && groups.find(g => g.s != null && g.s >= lp.serial && !(fold && g.s < T)), tagS = tagG ? tagG.s : null;
   for (const g of groups){
     if (fold && g.s != null && g.s < T) continue;
     // No entries dated today: drop a "Today" marker just before the first future day
     if (!todayDone && !hasToday && g.s != null && g.s > T && groups[0].s <= T) { out += `<div class="today" id="tlAnchor">Today · ${esc(dayLabel(T))}</div>`; todayDone = true; }
     const isToday = g.s === T;
     const endBal = g.rows[g.rows.length-1].bal;
-    out += `<div class="${g.s != null && g.s < T ? "past" : ""}" ${g.s != null ? `data-day="${g.s}"` : ""} ${isToday ? 'id="tlAnchor"' : ""}><div class="day ${isToday ? "isToday" : ""}"><span>${isToday ? "Today · " : ""}${g.s != null ? esc(dayLabel(g.s)) : ""}</span><span class="bal ${endBal < 0 ? "neg" : ""}">${money(endBal)}</span></div><div class="card group">${g.rows.map(e => e.pend ? pendHTML(e.pend, e.bal) : e.it ? expHTML(e.it, e.bal) : itemHTML(e.row, e.bal)).join("")}</div></div>`;
+    out += `<div class="${g.s != null && g.s < T ? "past" : ""}" ${g.s != null ? `data-day="${g.s}"` : ""} ${isToday ? 'id="tlAnchor"' : ""}><div class="day ${isToday ? "isToday" : ""}"><span>${isToday ? "Today · " : ""}${g.s != null ? esc(dayLabel(g.s)) : ""}${g.s != null && g.s === tagS ? `<i class="lowtag">Lowest</i>` : ""}</span><span class="bal ${endBal < 0 ? "neg" : ""}">${money(endBal)}</span></div><div class="card group">${g.rows.map(e => e.pend ? pendHTML(e.pend, e.bal) : e.it ? expHTML(e.it, e.bal) : itemHTML(e.row, e.bal)).join("")}</div></div>`;
   }
   return out || `<div class="empty">Nothing on ${esc(m.title)} yet.</div>`;
 }
@@ -2359,7 +2419,7 @@ document.addEventListener("click", e => {
   if (t.dataset.type) { lsSet("cf_lasttype", t.dataset.type); const amt = $("#fAmt") && $("#fAmt").value; addSheet(t.dataset.type); if (amt) $("#fAmt").value = amt; return; }
   if (t.dataset.chip != null) { $("#fText").value = t.dataset.chip; return; }
   if (t.id === "btnMonthEnd" || t.id === "btnMonthEnd2") return monthEndSheet();
-  if (t.dataset.affx != null) { lsSet("cf_affx", t.dataset.affx); return renderView(); }
+  if (t.dataset.affx != null) { lsSet("cf_affx", t.dataset.affx); cfgChanged(DEFAULT_ID); return renderView(); }
   if (t.dataset.affpay) return affirmPaySheet(t.dataset.affpay, t.dataset.affamt);
   if (t.dataset.affset) { $("#fAmt").value = t.dataset.affset; return; }
   if (t.dataset.calnav) { const p = parts(S.calMonth != null ? S.calMonth : todaySerial()); S.calMonth = toSerial(p.y, p.m + +t.dataset.calnav, 1); renderCal(); return loadCal(); }
@@ -2379,6 +2439,9 @@ document.addEventListener("click", e => {
   if (t.id === "btnSync") return flushQueue(true);
   if (t.id === "btnPlan") return planSheet();
   if (t.id === "btnKeys") return keysSheet();
+  if (t.id === "btnAffRename") return renameAffirm();
+  if (t.id === "dSheet") { setDrawer(false); window.open("https://docs.google.com/spreadsheets/d/" + encodeURIComponent(S.id) + "/edit", "_blank", "noopener"); return; }
+  if (t.id === "dRefresh") { if (!S.busy && mcp) { $("#dUpd").textContent = "Updating…"; S.tabs = []; loadAll().then(drawerUpd); } return; }
   if (t.id === "btnLow") { const L = S.lowAt; if (!L) return; closeSheet();
     return jumpToDay(L.title, L.serial).then(ok => { if (ok) toast(`Lowest point: ${money(L.bal)} on ${dayLabel(L.serial)}`, 3500); }); }
   if (t.id === "btnEndSav") return endSavingsSheet();
@@ -2456,6 +2519,7 @@ document.addEventListener("submit", e => {
   if (f.id === "planForm") {
     lsSet(akey("cf_goal"), String(Math.max(0, parseMoney($("#fGoal").value))));
     lsSet(akey("cf_cushion"), String(Math.max(0, parseMoney($("#fCushion").value))));
+    cfgChanged();
     closeSheet(); render(); toast("Allowance updated"); return;
   }
   if (f.id === "setForm") {
@@ -2733,6 +2797,7 @@ if (window.visualViewport) visualViewport.addEventListener("resize", () => fitTi
 if (window.ResizeObserver && $("#leftcol")) { let rh = 0; new ResizeObserver(() => { const h = $("#leftcol").offsetHeight; if (isPhone() && h !== rh) { rh = h; fitTimeline(); } }).observe($("#leftcol")); }
 
 /* ---------- iPhone: views menu slides over from the left (button top-left, or swipe in from the left edge) ---------- */
+function drawerUpd(){ const u = $("#dUpd"); if (u) u.textContent = S.refreshing ? "Updating…" : S.loadedAt ? "Updated " + S.loadedAt.toLocaleTimeString([], {hour:"numeric", minute:"2-digit"}) : ""; }
 function renderDrawerAccts(){
   const box = $("#dAccts"); if (!box) return;
   box.innerHTML = getAccounts().map(a => `<button class="dacct" data-acct="${esc(a.id)}"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3"/><path d="M3 10h18"/></svg><span>${esc(a.name)}</span>${a.id === S.id ? "<small>✓ Showing</small>" : ""}</button>`).join("");

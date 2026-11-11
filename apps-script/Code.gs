@@ -104,8 +104,8 @@ function api_(req) {
     if (lock) lock.releaseLock();
   }
 }
-const WRITES_ = ['update_values', 'insert_dimension', 'add_item', 'add_log', 'cal_add', 'cal_update', 'cal_delete', 'affirm_pay'];
-const KNOWN_ = ['get_spreadsheet', 'get_values', 'batch', 'cal_list', 'affirm_get'].concat(WRITES_);
+const WRITES_ = ['update_values', 'insert_dimension', 'add_item', 'add_log', 'cal_add', 'cal_update', 'cal_delete', 'affirm_pay', 'affirm_rename', 'settings_set'];
+const KNOWN_ = ['get_spreadsheet', 'get_values', 'batch', 'cal_list', 'affirm_get', 'settings_get'].concat(WRITES_);
 function run_(tool, i, readOnly) {
   try {
     if (/^cal_/.test(tool)) {
@@ -117,6 +117,7 @@ function run_(tool, i, readOnly) {
     }
     if (tool === 'affirm_get') return { result: affirmGet_() };
     if (tool === 'affirm_pay') { if (readOnly) throw new Error('Read-only request.'); return { result: affirmPay_(i) }; }
+    if (tool === 'affirm_rename') { if (readOnly) throw new Error('Read-only request.'); return { result: affirmRename_(i) }; }
     const ss = sheetFor_(i.spreadsheetId);
     switch (tool) {
       case 'get_spreadsheet': return { result: getSpreadsheet_(ss, i) };
@@ -125,6 +126,8 @@ function run_(tool, i, readOnly) {
       case 'insert_dimension': if (!readOnly) return { result: insertDimension_(ss, i) }; break;
       case 'add_item': if (!readOnly) return { result: addItem_(ss, i) }; break;
       case 'add_log': if (!readOnly) return { result: addLog_(ss, i) }; break;
+      case 'settings_get': return { result: settingsGet_(ss) };
+      case 'settings_set': if (!readOnly) return { result: settingsSet_(ss, i) }; break;
     }
     return { error: 'Unknown request: ' + tool, code: 'bad_request' };
   } catch (err) {
@@ -148,7 +151,7 @@ function usedPart_(rg) {
 function getSpreadsheet_(ss, i) {
   if (!i.includeGridData) {
     return {
-      properties: { title: ss.getName(), spreadsheetId: ss.getId(), features: ['batch', 'add_item', 'add_log', 'guard', 'calendar', 'affirm'] },
+      properties: { title: ss.getName(), spreadsheetId: ss.getId(), features: ['batch', 'add_item', 'add_log', 'guard', 'calendar', 'affirm', 'settings', 'affirm_rename'] },
       sheets: ss.getSheets().map(s => ({ properties: { title: s.getName(), sheetId: s.getSheetId() } }))
     };
   }
@@ -452,6 +455,38 @@ function affirmPay_(i) {
   a.hist.appendRow([pid, String(rows[k][6]), safeText_(String(rows[k][1])), date, amt, before, after, after <= 0 ? 'PAID OFF' : (i.kind === 'regular' ? 'PAYMENT' : 'EXTRA'), safeText_(clip_(i.note, 200)), new Date()]);
   SpreadsheetApp.flush();
   return { status: 'success', before: before, after: after, paidOff: after <= 0 };
+}
+// Renames one plan (the Plan / Merchant column of "Enter Plans"), found by its Plan ID
+function affirmRename_(i) {
+  const name = clip_(i.name, 60).trim();
+  if (!name) throw new Error('Type a name for the plan.');
+  if (!i.planId) throw new Error('Missing plan ID.');
+  const a = affirmSheets_(), n = a.plans.getLastRow(), rows = n > 1 ? a.plans.getRange(2, 7, n - 1, 1).getValues() : [];
+  const k = rows.findIndex(r => String(r[0]) === String(i.planId));
+  if (k < 0) throw new Error("Couldn't find that plan in the tracker.");
+  a.plans.getRange(k + 2, 2).setValue(safeText_(name));
+  SpreadsheetApp.flush();
+  return { status: 'success', name: name };
+}
+
+/* ---------- Settings shared by every device ---------- */
+// Savings goal, buffer and the extra Affirm payment: one small note per account, kept with the script (not in the sheet)
+function settingsGet_(ss) {
+  let cfg = null;
+  try { cfg = JSON.parse(PropertiesService.getScriptProperties().getProperty('cfg:' + ss.getId()) || 'null'); } catch (err) { cfg = null; }
+  return { settings: cfg && typeof cfg === 'object' ? cfg : null };
+}
+function settingsSet_(ss, i) {
+  const s = i.settings && typeof i.settings === 'object' ? i.settings : {}, out = {};
+  ['goal', 'cushion', 'affx'].forEach(k => {
+    if (s[k] == null) return;
+    const v = Math.round(Number(s[k]) * 100) / 100;
+    if (typeof s[k] !== 'number' || !isFinite(v) || v < 0 || v > 1e6) throw new Error('Bad number for ' + k + '.');
+    out[k] = v;
+  });
+  out.ts = Date.now();
+  PropertiesService.getScriptProperties().setProperty('cfg:' + ss.getId(), JSON.stringify(out));
+  return { status: 'success', settings: out };
 }
 
 /* ---------- 3. Keeping the sheets current ---------- */
