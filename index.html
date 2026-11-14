@@ -728,7 +728,7 @@ const norm = s => String(s||"").trim().toLowerCase().replace(/\s+/g," ");
 
 /* ---------- connector ---------- */
 const CFG = { url: lsGet("cf_api") || "", key: lsGet("cf_key") || "" };
-const READS = new Set(["get_spreadsheet", "get_values"]);
+const READS = new Set(["get_spreadsheet", "get_values", "affirm_get"]);   // answers kept on this device (affirm_get since v54)
 // The key is only ever sent to a Google Apps Script web app link (https://script.google.com/…), never anywhere else
 function apiLinkOK(u){
   try { const x = new URL(u); return x.protocol === "https:" && x.hostname === "script.google.com" && x.pathname.includes("/macros/"); }
@@ -816,9 +816,10 @@ async function prefetch(reqs){
   try {
     const r = await apiCall("batch", {calls: reqs.map(([tool, input]) => ({tool, input}))});
     const res = (r && r.results) || [];
-    if (res.length !== reqs.length || res.some(x => !x || x.error)) return false;
-    reqs.forEach(([tool, input], i) => cacheSet("cf_c:" + tool + ":" + JSON.stringify(input), res[i].result));
-    return true;
+    // a third item of true marks an extra (Affirm, shared settings): if only that part fails, the rest still counts
+    if (res.length !== reqs.length || res.some((x, i) => (!x || x.error) && !reqs[i][2])) return false;
+    reqs.forEach(([tool, input], i) => { if (res[i] && !res[i].error && READS.has(tool)) cacheSet("cf_c:" + tool + ":" + JSON.stringify(input), res[i].result); });
+    return res;
   } catch(e) {
     if (e.code === "bad_request" || e.code === "tool_error") batchOK = false;
     else if (e.code === "needs_reauth") throw e;
@@ -834,7 +835,7 @@ async function loadTabs(cacheOnly){
   const hadCal = calOK; calOK = feats.indexOf("calendar") >= 0; affirmOK = feats.indexOf("affirm") >= 0;
   cfgOK = feats.indexOf("settings") >= 0; renameOK = feats.indexOf("affirm_rename") >= 0;
   if (calOK && !hadCal) setTimeout(() => { if (matchMedia("(min-width: 900px)").matches) loadCal(); }, 0);
-  if (affirmOK && !S.affirm) setTimeout(() => loadAffirm(), 0);
+  if (affirmOK && !S.affirm) affirmFromCache();   // v54: the fresh copy now rides in the main request (loadAll)
   // Safety: the Apps Script must confirm it opened this account's sheet (older scripts always open Cash Flow)
   const got = p.properties && p.properties.spreadsheetId;
   if (S.id !== DEFAULT_ID && got !== S.id) { S.tabs = []; throw {code:"script_outdated", message:`Your Apps Script needs the update that lets it open “${acctName(S.id)}”. Paste the new Code.gs and redeploy, then tap Try again.`}; }
@@ -931,13 +932,23 @@ async function loadAll(pickTitle, timer){
   // 2) Then quietly fetch the fresh copy from the sheet
   S.loading = !S.month; S.refreshing = !!S.month; S.fromCache = null; render();
   try{
-    let d = null;
+    let d = null; const rode = {};
     batchedTitles = new Set();
     if (S.tabs.length) {
       // newer Apps Script: everything in one trip, then read it back from the saved copies
       const title = want(), pT = periodTabs(todaySerial()).filter(t => t !== title);
-      if (await prefetch([REQ.tabs(), REQ.month(title), REQ.log("Spending Log"), REQ.log("Savings Log"), ...pT.map(REQ.month)])) {
+      // v54: Affirm and the shared settings ride along as extras, so opening the app is one trip instead of four
+      const extra = [];
+      const due = t0 => Date.now() - (t0 || 0) > 60000;   // not again right after a save
+      if (!timer && affirmOK && due(affirmAt)) extra.push(["affirm_get", {}, true]);
+      if (!timer && cfgOK && due(cfgSeen[sid]) && !lsGet(akey("cf_cfgdirty", sid))) extra.push(["settings_get", {spreadsheetId: sid}, true]);
+      const main = [REQ.tabs(), REQ.month(title), REQ.log("Spending Log"), REQ.log("Savings Log"), ...pT.map(REQ.month)];
+      const got = await prefetch([...main, ...extra]);
+      if (got) {
         if (stale()) return;
+        extra.forEach((x, i) => { const a = got[main.length + i]; if (!a || a.error) return;
+          if (x[0] === "affirm_get") { affirmFromCache(); affirmAt = Date.now(); S.affirmErr = null; }
+          else rode.cfg = {sid, r: a.result}; });
         batchedTitles = new Set([title, ...pT]);
         await loadTabs(true); d = await gather(title, true); S.fromCache = null;
       }
@@ -951,7 +962,10 @@ async function loadAll(pickTitle, timer){
     applyData(d);
     S.loadedAt = S.fromCache ? new Date(S.fromCache) : new Date();
     S.offline = !!S.fromCache; S.err = null;
-    if (!timer && !S.offline) setTimeout(syncCfg, 0);   // v53: shared settings are checked after every fresh load (v52 only did it on first connect)
+    if (!timer && !S.offline) {
+      setTimeout(() => syncCfg(rode.cfg), 0);   // shared settings are checked after every fresh load
+      if (affirmOK && Date.now() - affirmAt > 60000) setTimeout(() => loadAffirm(), 0);   // only when it didn't ride in the main request
+    }
   } catch(e){
     if (stale()) return;
     if (S.month && (!navigator.onLine || e.code === "server_unavailable" || e.code === "offline")) S.offline = true; else S.err = e;
@@ -1190,47 +1204,50 @@ async function execOp0(op){
   }
 }
 function enqueue(op, maybeSent){
-  S.queue.push({sid: S.id, ...op, qid: Date.now() + "-" + Math.random().toString(36).slice(2,7), maybeSent: !!maybeSent, at: Date.now()});
+  const qid = Date.now() + "-" + Math.random().toString(36).slice(2,7);
+  S.queue.push({sid: S.id, ...op, qid, maybeSent: !!maybeSent, at: Date.now()});
   saveQueue();
+  return qid;
 }
+// v54: every save goes through the waiting list. The form closes right away and the change is sent in the background
+// (same path as an offline save), so a slow signal no longer keeps the form on screen.
 async function submitOp(op, label, done){
-  if (S.busy && !flushing) return;
   if (!op.opId) op.opId = newOpId();
-  if (!navigator.onLine || S.queue.length || flushing) {
-    // Offline, or older changes still waiting: line this one up behind them so they land in order
-    enqueue(op, false); closeSheet();
-    toast(navigator.onLine ? "Saved — sending after the earlier changes" : "No signal — saved on this phone, will sync", 3500);
-    if (navigator.onLine) flushQueue();
-    return;
-  }
-  S.busy = true; toast(label + "…", 0);
-  try { await execOp(op); closeSheet(); await loadAll(); toast(done || "Saved"); }
-  catch(e){
-    if (!navigator.onLine || NETWORKISH.has(e && e.code)) {
-      enqueue(op, true); closeSheet();
-      toast("Couldn't reach Google Sheets — saved on this phone, will retry", 4000);
-    } else { const [h, b] = errInfo(e); toast(`${h}. ${b || ""}`, 6000); try { await loadAll(); } catch(_){} }
-  }
-  finally { S.busy = false; renderQueue(); }
+  if (done) op.done = done;
+  const qid = enqueue(op, false); closeSheet();
+  if (!navigator.onLine) { toast("No signal — saved on this phone, will sync", 3500); return; }
+  toast((label || "Saving") + "…", 0);
+  await flushQueue();
+  const left = S.queue.find(q => q.qid === qid);
+  if (!left) return;
+  if (left.error) return;   // flushQueue already said why
+  if (!flushing && !S.busy) toast("Couldn't reach Google Sheets — saved on this phone, will retry", 4000);
+  else toast("Saving…", 0);   // an earlier save is still on its way; this one follows it
 }
 let flushing = false;
 async function flushQueue(manual){
   if (flushing || S.busy || !S.queue.length || !mcp) return;
   if (!navigator.onLine) { if (manual) toast("Still offline"); return; }
-  flushing = true; S.busy = true; let sent = 0, stuck = null;
+  flushing = true; S.busy = true; let sent = 0, failed = null, last = null, i = 0;
   renderQueue();
-  while (S.queue.length){
-    const op = S.queue[0];
-    try { await withAccount(op.sid || DEFAULT_ID, () => execOp(op)); S.queue.shift(); sent++; saveQueue(); }
+  while (i < S.queue.length){
+    const op = S.queue[i];
+    // one that failed for a real reason (e.g. the row is gone) waits for you: Sync now tries it again, ✕ discards it. Later changes still go.
+    if (op.error && !manual) { i++; continue; }
+    // marked before sending, so if the app is closed mid-save the next try knows it may already have landed
+    if (!op.maybeSent && serverAdds && op.opId) { op.maybeSent = true; lsSet("cf_queue", JSON.stringify(S.queue)); }
+    try { await withAccount(op.sid || DEFAULT_ID, () => execOp(op)); last = S.queue.splice(i, 1)[0]; sent++; saveQueue(); }
     catch(e){
-      if (!navigator.onLine || NETWORKISH.has(e && e.code)) { op.maybeSent = true; saveQueue(); break; }
-      stuck = {op, e}; break;   // a real problem (e.g. row no longer exists): stop and let the user decide
+      if (!navigator.onLine || NETWORKISH.has(e && e.code)) { op.maybeSent = true; op.retry = true; saveQueue(); break; }
+      op.error = errInfo(e).filter(Boolean).join(": "); failed = op; saveQueue(); i++;
     }
   }
   flushing = false; S.busy = false;
-  if (stuck) { stuck.op.error = errInfo(stuck.e).join(": "); saveQueue(); }
-  if (sent) { await loadAll(); toast(`Synced ${sent} change${sent > 1 ? "s" : ""}`); }
-  else if (manual && !stuck) toast("Couldn't reach Google Sheets yet");
+  if (failed) toast(failed.error + " — it's in the waiting list", 6000);
+  if (sent || failed) { try { await loadAll(); } catch(_){} }
+  if (failed) {}
+  else if (sent) toast(sent === 1 && last && last.done ? last.done : `Synced ${sent} change${sent > 1 ? "s" : ""}`);
+  else if (manual) toast("Couldn't reach Google Sheets yet");
   renderQueue();
 }
 function opLabel(op){
@@ -1253,11 +1270,12 @@ function opLabel1(op){
 }
 function renderQueue(){
   const el = $("#queue"); if (!el) return;
-  if (!S.queue.length && !S.offline) { el.innerHTML = ""; return; }
+  const inFlight = flushing && navigator.onLine && !S.offline && !S.queue.some(q => q.error || q.retry);
+  if ((!S.queue.length && !S.offline) || inFlight) { el.innerHTML = ""; return; }
   const n = S.queue.length;
   el.innerHTML = `<div class="card qbox">
     <div class="qhead"><b>${S.offline || !navigator.onLine ? "Offline" : "Waiting to sync"}</b>${n ? `<button class="qsync" id="btnSync">${flushing ? "Syncing…" : "Sync now"}</button>` : ""}</div>
-    <div class="hint" style="margin-top:2px">${n ? `${n} change${n > 1 ? "s" : ""} saved on this phone. They'll go to your sheet as soon as there's signal.` : `Showing your numbers as of ${S.loadedAt ? S.loadedAt.toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}) : "the last sync"}. New entries are saved on this device and sync when you're back online.`}</div>
+    <div class="hint" style="margin-top:2px">${n ? `${n} change${n > 1 ? "s" : ""} saved on this phone. ${navigator.onLine && !S.offline ? "Not in your sheet yet — tap Sync now to try again." : "They'll go to your sheet as soon as there's signal."}` : `Showing your numbers as of ${S.loadedAt ? S.loadedAt.toLocaleString([], {weekday:"short", hour:"numeric", minute:"2-digit"}) : "the last sync"}. New entries are saved on this device and sync when you're back online.`}</div>
     ${S.queue.map(op => `<div class="qitem"><span>${esc(opLabel(op))}${op.error ? `<small class="neg">${esc(op.error)}</small>` : ""}</span><button class="qx" data-qdel="${esc(op.qid)}" aria-label="Discard">✕</button></div>`).join("")}
   </div>`;
 }
@@ -1350,16 +1368,17 @@ const cfgLocal = sid => { const n = k => { const v = parseFloat(lsGet(akey(k, si
   const o = {goal: n("cf_goal") ?? 50, cushion: n("cf_cushion") ?? 100}; if (sid === DEFAULT_ID) o.affx = getAffExtra(); return o; };
 function cfgChanged(sid){ lsSet(akey("cf_cfgdirty", sid || S.id), String(Date.now())); cfgSeen = {}; syncCfg(); }
 let cfgBusy = false, cfgSeen = {};
-async function syncCfg(){
+async function syncCfg(pre){   // pre = {sid, r}: the answer when it already came with the main request
   if (!cfgOK || cfgBusy || !mcp || !navigator.onLine) return;
   cfgBusy = true;
   try {
     for (const sid of [...new Set([S.id, DEFAULT_ID])]) {
       const dk = akey("cf_cfgdirty", sid), mark = lsGet(dk);
       if (mark) { await apiCall("settings_set", {spreadsheetId: sid, settings: cfgLocal(sid)}); if (lsGet(dk) === mark) lsSet(dk, ""); continue; }
-      if (sid !== S.id || Date.now() - (cfgSeen[sid] || 0) < 5 * 60000) continue;
+      const have = pre && pre.sid === sid ? pre.r : null;
+      if (sid !== S.id || (!have && Date.now() - (cfgSeen[sid] || 0) < 5 * 60000)) continue;
       cfgSeen[sid] = Date.now();
-      const r = await apiCall("settings_get", {spreadsheetId: sid}), st = r && r.settings;
+      const r = have || await apiCall("settings_get", {spreadsheetId: sid}), st = r && r.settings;
       if (!st) { await apiCall("settings_set", {spreadsheetId: sid, settings: cfgLocal(sid)}); continue; }   // first device to open sets the shared copy
       const loc = cfgLocal(sid); let diff = false;
       for (const [k, key] of [["goal", akey("cf_goal", sid)], ["cushion", akey("cf_cushion", sid)], ["affx", "cf_affx"]]) {
@@ -1581,11 +1600,14 @@ function affirmPlan(){
 }
 // The tracker stores APR as 11.99 (shown as "11.99%"), not 0.1199 — use a fraction everywhere in the app
 function fixAffirm(x){ if (x && x.plans) x.plans.forEach(p => { if (p.apr > 1) p.apr = p.apr / 100; }); return x; }
+let affirmAt = 0;   // when the Affirm plans were last read from the sheet
+function affirmFromCache(){ const c = cacheGet("cf_c:affirm_get:{}"); if (c && c.p) { S.affirm = fixAffirm(c.p); return true; } return false; }
 async function loadAffirm(force){
   if (!affirmOK || (S.affirmLoading && !force)) return;
+  if (!S.affirm && affirmFromCache() && (S.view === "affirm" || S.view === "insights")) renderView();
+  if (!force && S.affirm && Date.now() - affirmAt < 60000) return;   // just read (usually with the main request)
   S.affirmLoading = true;
-  try { const cached = await call("affirm_get", {}, true).catch(() => null); if (cached && !S.affirm) { S.affirm = fixAffirm(cached); if (S.view === "affirm" || S.view === "insights") renderView(); } } catch(e) {}
-  try { S.affirm = fixAffirm(await call("affirm_get", {})); S.affirmErr = null; } catch(e) { S.affirmErr = e; }
+  try { S.affirm = fixAffirm(await call("affirm_get", {})); S.affirmErr = null; affirmAt = Date.now(); } catch(e) { S.affirmErr = e; }
   S.affirmLoading = false;
   if (S.view === "affirm" || S.view === "insights") renderView();
 }
@@ -1721,7 +1743,7 @@ function calDelSheet(id, date, repeats){
 async function calWrite(op, label, done){
   // calendar changes aren't queued offline: they need a signal
   if (!navigator.onLine) { toast("Calendar changes need a signal"); return; }
-  if (S.busy) return; S.busy = true; toast(label + "…", 0);
+  if (S.busy) { toast("Still saving the last change — try again in a moment", 3000); return; } S.busy = true; toast(label + "…", 0);
   try {
     if (op.type === "caladd") await call("cal_add", op.input);
     if (op.type === "calupd") await call("cal_update", op.input);
@@ -1735,7 +1757,7 @@ async function calWrite(op, label, done){
 let toastTimer;
 function toast(msg, ms=2600){ const t = $("#toast"); t.textContent = msg; t.hidden = false; clearTimeout(toastTimer); if (ms) toastTimer = setTimeout(() => t.hidden = true, ms); }
 async function run(label, fn, done){
-  if (S.busy) return; S.busy = true; toast(label + "…", 0);
+  if (S.busy) { toast("Still saving the last change — try again in a moment", 3000); return; } S.busy = true; toast(label + "…", 0);
   try { await fn(); closeSheet(); await loadAll(); toast(done || "Saved"); }
   catch(e){ const [h, b] = errInfo(e); toast(`${h}. ${b || ""}`, 6000); try { await loadAll(); } catch(_){} }
   finally { S.busy = false; }
